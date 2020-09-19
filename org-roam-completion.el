@@ -28,10 +28,14 @@
 ;;; Commentary:
 ;;
 ;; This library provides completion for org-roam.
+;;
+;;
 ;;; Code:
 ;;;; Library Requires
 (require 'cl-lib)
 (require 's)
+
+(require 'org-roam-compat)
 
 (defvar helm-pattern)
 (declare-function helm "ext:helm")
@@ -105,6 +109,81 @@ https://github.com/emacs-helm/helm"))
     (if action
         (funcall action res)
       res)))
+
+;;; Completion-at-point
+(defcustom org-roam-completion-functions nil
+  "List of functions to be used with `completion-at-point' for Org-roam."
+  :group 'org-roam
+  :type '(repeat function))
+
+;;;; Utility Functions
+(defun org-roam-completion--get-titles ()
+  "Return all titles within Org-roam."
+  (mapcar #'car (org-roam-db-query [:select [titles:title] :from titles])))
+
+;;;; Tags
+(defun org-roam-completion-tags-at-point ()
+  "`completion-at-point' function for Org-roam tags."
+  (let ((end (point))
+        (start (point))
+        (exit-fn (lambda (&rest _) nil))
+        collection)
+    (when (looking-back "^#\\+roam_tags:.*" (line-beginning-position))
+      (when (looking-at "\\>")
+        (setq start (save-excursion (skip-syntax-backward "w")
+                                    (point))
+              end (point)))
+      (setq collection #'org-roam-db--get-tags
+            exit-fn (lambda (str _status)
+                      (delete-char (- (length str)))
+                      (insert "\"" str "\""))))
+    (when collection
+      (let ((prefix (buffer-substring-no-properties start end)))
+        (list start end
+              (if (functionp collection)
+                  (completion-table-dynamic
+                   (lambda (_)
+                     (cl-remove-if (apply-partially #'string= prefix)
+                                   (funcall collection))))
+                collection)
+              :exit-function exit-fn)))))
+
+(add-to-list 'org-roam-completion-functions #'org-roam-completion-tags-at-point)
+
+;;; Word-at-point
+(defcustom org-roam-completion-everywhere nil
+  "If non-nil, provide completions from the current word at point."
+  :group 'org-roam
+  :type 'boolean)
+
+(defun org-roam-completion-word-at-point ()
+  "`completion-at-point' function for word at point.
+This is active when `org-roam-completion-everywhere' is non-nil."
+  (when org-roam-completion-everywhere
+    (let ((end (point))
+        (start (point))
+        (exit-fn (lambda (&rest _) nil))
+        collection)
+    (when (thing-at-point 'word)
+      (let ((bounds (bounds-of-thing-at-point 'word)))
+        (setq start (car bounds)
+              end (cdr bounds)
+              collection #'org-roam-completion--get-titles
+              exit-fn (lambda (str _status)
+                        (delete-char (- (length str)))
+                        (insert (org-roam-link-make-string (concat "roam:" str)))))))
+    (when collection
+      (let ((prefix (buffer-substring-no-properties start end)))
+        (list start end
+              (if (functionp collection)
+                  (completion-table-dynamic
+                   (lambda (_)
+                     (cl-remove-if (apply-partially #'string= prefix)
+                                   (funcall collection))))
+                collection)
+              :exit-function exit-fn))))))
+
+(add-to-list 'org-roam-completion-functions #'org-roam-completion-word-at-point)
 
 (provide 'org-roam-completion)
 

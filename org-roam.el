@@ -273,8 +273,7 @@ The currently supported symbols are:
   :type 'boolean
   :group 'org-roam)
 
-(defvar org-roam-completion-functions nil
-  "List of functions to be used with `completion-at-point' for Org-roam.")
+
 
 ;;;; Dynamic variables
 (defvar org-roam-last-window nil
@@ -1139,74 +1138,6 @@ This function hooks into `org-open-at-point' via
             ;; Conditionally fall back to default behaviour
             (t
              nil)))))
-
-;;; Completion at point
-(defcustom org-roam-completion-everywhere nil
-  "If non-nil, provide completions from the current word at point."
-  :group 'org-roam
-  :type 'boolean)
-
-;;;; Tags completion
-(defun org-roam-complete-tags-at-point ()
-  "`completion-at-point' function for Org-roam tags."
-  (let ((end (point))
-        (start (point))
-        (exit-fn (lambda (&rest _) nil))
-        collection)
-    (when (looking-back "^#\\+roam_tags:.*" (line-beginning-position))
-      (when (looking-at "\\>")
-        (setq start (save-excursion (skip-syntax-backward "w")
-                                    (point))
-              end (point)))
-      (setq collection #'org-roam-db--get-tags
-            exit-fn (lambda (str _status)
-                      (delete-char (- (length str)))
-                      (insert "\"" str "\""))))
-    (when collection
-      (let ((prefix (buffer-substring-no-properties start end)))
-        (list start end
-              (if (functionp collection)
-                  (completion-table-dynamic
-                   (lambda (_)
-                     (cl-remove-if (apply-partially #'string= prefix)
-                                   (funcall collection))))
-                collection)
-              :exit-function exit-fn)))))
-
-(defun org-roam--get-titles ()
-  "Return all titles within Org-roam."
-  (mapcar #'car (org-roam-db-query [:select [titles:title] :from titles])))
-
-(defun org-roam-complete-everywhere ()
-  "`completion-at-point' function for word at point.
-This is active when `org-roam-completion-everywhere' is non-nil."
-  (let ((end (point))
-        (start (point))
-        (exit-fn (lambda (&rest _) nil))
-        collection)
-    (when (and org-roam-completion-everywhere
-               (thing-at-point 'word))
-      (let ((bounds (bounds-of-thing-at-point 'word)))
-        (setq start (car bounds)
-              end (cdr bounds)
-              collection #'org-roam--get-titles
-              exit-fn (lambda (str _status)
-                        (delete-char (- (length str)))
-                        (insert "[[" str "]]")))))
-    (when collection
-      (let ((prefix (buffer-substring-no-properties start end)))
-        (list start end
-              (if (functionp collection)
-                  (completion-table-dynamic
-                   (lambda (_)
-                     (cl-remove-if (apply-partially #'string= prefix)
-                                   (funcall collection))))
-                collection)
-              :exit-function exit-fn)))))
-
-(add-to-list 'org-roam-completion-functions #'org-roam-complete-tags-at-point)
-(add-to-list 'org-roam-completion-functions #'org-roam-complete-everywhere)
-(add-to-list 'org-roam-completion-functions #'org-roam-link-complete-at-point)
 
 ;;; Org-roam-mode
 ;;;; Function Faces

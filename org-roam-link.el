@@ -37,6 +37,9 @@
 (require 'ol)
 (require 'org-roam-compat)
 
+;;; From org-roam-completions.el
+(defvar org-roam-completion-functions)
+
 (declare-function  org-roam--find-file                  "org-roam")
 (declare-function  org-roam-find-file                   "org-roam")
 
@@ -266,6 +269,8 @@ DESC is the link description."
                                    (funcall collection))))
                 collection)
               :exit-function exit-fn)))))
+
+(add-to-list 'org-roam-completion-functions #'org-roam-link-complete-at-point)
 
 (provide 'org-roam-link)
 ;;; org-roam-link.el ends here
