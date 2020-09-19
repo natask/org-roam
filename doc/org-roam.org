@@ -544,10 +544,23 @@ The Org-roam buffer displays backlinks for the currently active Org-roam note.
 
   The ~no-delete-window~ parameter for the org-roam buffer. Setting it to ~'t~ prevents the window from being deleted when calling ~delete-other-windows~.
 
-** Org-roam Links
+** Org-roam Files
 
-Org-roam links are regular ~file:~ links in Org-mode. By default, links are
-inserted with the title as the link description with ~org-roam-insert~.
+Org-roam files are created and prefilled using Org-roam's templating
+system. The templating system is customizable (see [[*The Templating System][The Templating System]]).
+
+* Linking in Org-roam
+
+Org-roam caches all Org links within its database. These include:
+
+- ~file:~ links :: These regular file links are the most common way to link
+  between zettels, and are native to Org.
+- ~id:~ links :: It may sometimes be desirable to link to a particular headline.
+  Org-roam enforces the use of Org IDs with headline linking, and stores these
+  IDs within its database.
+
+Links can be inserted with the title as the link description with
+~org-roam-insert~.
 
 - User Option: org-roam-link-title-format
 
@@ -557,10 +570,27 @@ inserted with the title as the link description with ~org-roam-insert~.
   If your version of Org is at least ~9.2~, consider styling the link differently,
   by customizing the ~org-roam-link~, and ~org-roam-link-current~ faces.
 
-** Org-roam Files
+In addition, Org-roam introduces a new kind of link: the ~roam:~ link. These
+links are not natively supported by Org. This means that ~roam:~ links are only
+navigable with Org-roam installed. These links provide a convenient way of
+linking without breaking the flow of typing.
 
-Org-roam files are created and prefilled using Org-roam's templating
-system. The templating system is customizable (see [[*The Templating System][The Templating System]]).
+~roam:~ links come in three forms:
+
+- ~[[roam:title]]~ :: this links to the note with title "title" in the database.
+- ~[[roam:*headline]]~ :: this links to headline "headline" in the current Org-roam file.
+- ~[[roam:title*headline]]~ :: this links to headline "headline" in the Org-roam file with title "title".
+
+Org-roam provides completions for conveniently linking to existing notes. These completions are provided via ~completion-at-point~. Users of ~company-mode~ may want to prepend ~company-capf~ to the start of their ~company-backends~ for Org-mode.
+
+- User Option: org-roam-link-auto-replace
+
+  When non-nil, replace Org-roam's roam links with file or id links whenever
+  possible. This includes on file-save, and on following the link. This defaults
+  to ~t~. This behaviour is desirable to maintain the highest backwards
+  compatibility with vanilla Org-mode, but the resolved links are harder to
+  alter after resolution. Link resolution only occurs if there is a
+  corresponding file or headline found.
 
 * Navigating Around
 

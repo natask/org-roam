@@ -72,6 +72,7 @@ General Public License for more details.
 * Anatomy of an Org-roam File::
 * The Templating System::
 * Concepts and Configuration::
+* Linking in Org-roam::
 * Navigating Around::
 * Encryption::
 * Graphing::
@@ -108,7 +109,6 @@ Concepts and Configuration
 
 * Directories and Files::
 * The Org-roam Buffer::
-* Org-roam Links::
 * Org-roam Files::
 
 Navigating Around
@@ -707,7 +707,6 @@ All of Org-roam's customization options can be viewed via
 @menu
 * Directories and Files::
 * The Org-roam Buffer::
-* Org-roam Links::
 * Org-roam Files::
 @end menu
 
@@ -773,11 +772,29 @@ User Option: org-roam-buffer-no-delete-other-windows
 The @code{no-delete-window} parameter for the org-roam buffer. Setting it to @code{'t} prevents the window from being deleted when calling @code{delete-other-windows}.
 @end itemize
 
-@node Org-roam Links
-@section Org-roam Links
+@node Org-roam Files
+@section Org-roam Files
 
-Org-roam links are regular @code{file:} links in Org-mode. By default, links are
-inserted with the title as the link description with @code{org-roam-insert}.
+Org-roam files are created and prefilled using Org-roam's templating
+system. The templating system is customizable (see @ref{The Templating System}).
+
+@node Linking in Org-roam
+@chapter Linking in Org-roam
+
+Org-roam caches all Org links within its database. These include:
+
+@table @asis
+@item @code{file:} links
+These regular file links are the most common way to link
+between zettels, and are native to Org.
+@item @code{id:} links
+It may sometimes be desirable to link to a particular headline.
+Org-roam enforces the use of Org IDs with headline linking, and stores these
+IDs within its database.
+@end table
+
+Links can be inserted with the title as the link description with
+@code{org-roam-insert}.
 
 @itemize
 @item
@@ -790,11 +807,35 @@ If your version of Org is at least @code{9.2}, consider styling the link differe
 by customizing the @code{org-roam-link}, and @code{org-roam-link-current} faces.
 @end itemize
 
-@node Org-roam Files
-@section Org-roam Files
+In addition, Org-roam introduces a new kind of link: the @code{roam:} link. These
+links are not natively supported by Org. This means that @code{roam:} links are only
+navigable with Org-roam installed. These links provide a convenient way of
+linking without breaking the flow of typing.
 
-Org-roam files are created and prefilled using Org-roam's templating
-system. The templating system is customizable (see @ref{The Templating System}).
+@code{roam:} links come in three forms:
+
+@table @asis
+@item @code{[[roam:title]]}
+this links to the note with title ``title'' in the database.
+@item @code{[[roam:*headline]]}
+this links to headline ``headline'' in the current Org-roam file.
+@item @code{[[roam:title*headline]]}
+this links to headline ``headline'' in the Org-roam file with title ``title''.
+@end table
+
+Org-roam provides completions for conveniently linking to existing notes. These completions are provided via @code{completion-at-point}. Users of @code{company-mode} may want to prepend @code{company-capf} to the start of their @code{company-backends} for Org-mode.
+
+@itemize
+@item
+User Option: org-roam-link-auto-replace
+
+When non-nil, replace Org-roam's roam links with file or id links whenever
+possible. This includes on file-save, and on following the link. This defaults
+to @code{t}. This behaviour is desirable to maintain the highest backwards
+compatibility with vanilla Org-mode, but the resolved links are harder to
+alter after resolution. Link resolution only occurs if there is a
+corresponding file or headline found.
+@end itemize
 
 @node Navigating Around
 @chapter Navigating Around
