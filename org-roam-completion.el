@@ -35,6 +35,7 @@
 (require 'cl-lib)
 (require 's)
 
+(require 'org-roam-db)
 (require 'org-roam-compat)
 
 (defvar helm-pattern)
