@@ -27,7 +27,7 @@
 
 (defun test-org-roam--abs-path (file-path)
   "Get absolute FILE-PATH from `org-roam-directory'."
-  (file-truename (expand-file-name file-path org-roam-directory)))
+  (expand-file-name file-path org-roam-directory))
 
 (defun test-org-roam--find-file (path)
   "PATH."
@@ -35,7 +35,7 @@
     (make-directory (file-name-directory path) t)
     (find-file path)))
 
-(defvar test-org-roam-directory (file-truename (concat default-directory "tests/roam-files"))
+(defvar test-org-roam-directory (expand-file-name "tests/roam-files")
   "Directory containing org-roam test org files.")
 
 (defun test-org-roam--init ()
@@ -259,25 +259,25 @@
               `(["e84d0630-efad-4017-9059-5ef917908823" ,(test-org-roam--abs-path "headlines/headline.org")]
                 ["801b58eb-97e2-435f-a33e-ff59a2f0c213" ,(test-org-roam--abs-path "headlines/headline.org")])))))
 
-(describe "Test fuzzy links"
+(describe "Test roam links"
   (it ""
-    (expect (org-roam--split-fuzzy-link "")
+    (expect (org-roam-link--split-path "")
             :to-equal
             '(title "" "" nil)))
   (it "title"
-    (expect (org-roam--split-fuzzy-link "title")
+    (expect (org-roam-link--split-path "title")
             :to-equal
             '(title "title" "" nil)))
   (it "title*"
-    (expect (org-roam--split-fuzzy-link "title*")
+    (expect (org-roam-link--split-path "title*")
             :to-equal
             '(title+headline "title" "" 5)))
   (it "title*headline"
-    (expect (org-roam--split-fuzzy-link "title*headline")
+    (expect (org-roam-link--split-path "title*headline")
             :to-equal
             '(title+headline "title" "headline" 5)))
   (it "*headline"
-    (expect (org-roam--split-fuzzy-link "*headline")
+    (expect (org-roam-link--split-path "*headline")
             :to-equal
             '(headline "" "headline" 0))))
 
