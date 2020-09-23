@@ -84,6 +84,10 @@ value like `most-positive-fixnum'."
 (defvar org-roam-db--connection (make-hash-table :test #'equal)
   "Database connection to Org-roam database.")
 
+(defvar org-roam-blacklist-extract-links-files
+  nil
+  "list of files that will not have links parsed and extracted.")
+
 ;;;; Core Functions
 (defun org-roam-db--get ()
   "Return the sqlite db file."
@@ -530,12 +534,13 @@ If FORCE, force a rebuild of the cache from scratch."
           (unless (string= (gethash file current-files)
                            contents-hash)
             (org-roam--with-temp-buffer file
-             (when-let (links (org-roam--extract-links file))
-               (org-roam-db-query
-                [:insert :into links
-                 :values $v1]
-                links)
-               (setq link-count (1+ link-count)))
+              (unless (member file org-roam-blacklist-extract-links-files)
+                (when-let (links (org-roam--extract-links file))
+                  (org-roam-db-query
+                   [:insert :into links
+                    :values $v1]
+                   links)
+                  (setq link-count (1+ link-count))))
              (when-let (tags (org-roam--extract-tags file))
                (org-roam-db-query
                 [:insert :into tags
