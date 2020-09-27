@@ -126,16 +126,31 @@
     (format "#+roam_tags: %s" concat-string)
     ))
 
+(defun org-roam--with-file-hook-function ()
+  "Called by functions that modify in the background."
+  (when (org-roam--org-roam-file-p)
+    ;(setq org-roam-last-window (get-buffer-window))
+    ;(run-hooks 'org-roam-file-setup-hook) ; Run user hooks ;; turned off
+    ;(org-roam--setup-title-auto-update)
+    ;(add-hook 'post-command-hook #'org-roam-buffer--update-maybe nil t)
+    ;(add-hook 'before-save-hook #'org-roam-link--replace-link-on-save nil t)
+    (add-hook 'after-save-hook #'org-roam--queue-file-for-update nil t)
+    ;(dolist (fn org-roam-completion-functions)
+    ;  (add-hook 'completion-at-point-functions fn nil t))
+    ;(org-roam-buffer--update-maybe :redisplay t)
+    ))
+
 (defun org-roam--open-file-rename-tag-and-close-file (file before after)
   "Rename tag from `before' to `after' on file."
-  (org-roam--with-file file
   (let (to-write)
-    (find-file-noselect file)
-    (setq to-write (org-roam--buffer-find-and-rename-tag before after))
-    (goto-char (point-min))
-    (re-search-forward "^#\\+roam_tags:.*" nil t)
-    (replace-match to-write)
-    (save-buffer)
+    (with-temp-file file
+      (insert-file-contents file)
+      (org-mode)
+      (setq to-write (org-roam--buffer-find-and-rename-tag before after))
+      (goto-char (point-min))
+      (re-search-forward "^#\\+roam_tags:.*" nil t)
+      (replace-match to-write)
+      (org-roam-db--update-file file)
     )))
 
 (defun org-roam-rename-tag (before after)
