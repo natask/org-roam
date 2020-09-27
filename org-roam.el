@@ -611,7 +611,7 @@ it as FILE-PATH."
       (org-element-map (org-element-parse-buffer) 'link
         (lambda (link)
           (goto-char (org-element-property :begin link))
-          (let* ((type (org-element-property :type link))
+          (let* ((type (org-roam--collate-types (org-element-property :type link)))
                  (path (org-element-property :path link))
                  (element (org-element-at-point))
                  (begin (or (org-element-property :content-begin element)
@@ -631,11 +631,8 @@ it as FILE-PATH."
                  (names (pcase type
                           ("id"
                            (list (car (org-roam-id-find path))))
-                          ((pred (lambda (typ)
-                                   (and (boundp 'org-ref-cite-types)
-                                        (-contains? org-ref-cite-types typ))))
-                           (setq type "cite")
-                           (org-ref-split-and-strip-string path))
+                          ("cite" (list path))
+                          ("website" (list path))
                           ("fuzzy" (list path))
                           ("roam" (list path))
                           (_ (if (or (file-remote-p path)
@@ -780,47 +777,32 @@ Tags are obtained via:
                           `((booleanp (list symbolp))
                             ,wrong-type))))))
 
-(defun org-roam--cite-prefix (ref)
-  "Return the citation prefix of REF, or nil otherwise.
-The prefixes are defined in `org-ref-cite-types`.
-Examples:
-   (org-roam--cite-prefix \"cite:foo\") -> \"cite:\"
-   (org-roam--cite-prefix \"https://google.com\") -> nil"
-  (when (require 'org-ref nil t)
-    (seq-find
-     (lambda (prefix) (s-prefix? prefix ref))
-     (-map (lambda (type) (concat type ":"))
-           org-ref-cite-types))))
-
-(defun org-roam--ref-type (ref)
-  "Determine the type of the REF from the prefix."
-  (let* ((cite-prefix (org-roam--cite-prefix ref))
-         (is-website (seq-some
-                      (lambda (prefix) (s-prefix? prefix ref))
-                      '("http" "https")))
-         (type (cond (cite-prefix "cite")
-                     (is-website "website")
-                     (t "file"))))
-    type))
+(defun org-roam--collate-types (type)
+  "Collate TYPE into a parent type.
+Packages like `org-ref' introduce many different link prefixes,
+but we collate them under the same parent type to clean up
+backlinks."
+  (cond ((and (boundp 'org-ref-cite-types)
+              (member type org-ref-cite-types))
+         "cite")
+        ((member type '("http" "https"))
+         "website")
+        (t type)))
 
 (defun org-roam--extract-ref ()
   "Extract the ref from current buffer and return the type and the key of the ref."
-  (pcase (cdr (assoc "ROAM_KEY"
-                     (org-roam--extract-global-props '("ROAM_KEY"))))
-    ('nil nil)
-    ((pred string-empty-p)
-     (user-error "Org property #+roam_key cannot be empty"))
-    (ref
-     (let* ((type (org-roam--ref-type ref))
-            (key (cond ((string= "cite" type)
-                        (s-chop-prefix (org-roam--cite-prefix ref) ref))
-                       (t ref))))
-       (cons type key)))))
-
-(defun org-roam--ref-type-p (type)
-  "Return t if the ref from current buffer is TYPE."
-  (let ((current (car (org-roam--extract-ref))))
-    (eq current type)))
+  (let (type path)
+    (pcase (cdr (assoc "ROAM_KEY"
+                       (org-roam--extract-global-props '("ROAM_KEY"))))
+      ('nil nil)
+      ((pred string-empty-p)
+       (user-error "Org property #+roam_key cannot be empty"))
+      (ref
+       (when (string-match org-link-plain-re ref)
+         (setq type (org-roam--collate-types (match-string 1 ref))
+               path (match-string 2 ref)))))
+    (when (and type path)
+      (cons type path))))
 
 ;;;; Title/Path/Slug conversion
 (defun org-roam--path-to-slug (path)
@@ -1102,16 +1084,21 @@ Return nil otherwise."
                             :limit 1]
                            id)))
 
-(defun org-roam-id-find (id &optional markerp strict)
+(defun org-roam-id-find (id &optional markerp strict keep-buffer-p)
   "Return the location of the entry with the id ID.
 When MARKERP is non-nil, return a marker pointing to theheadline.
 Otherwise, return a cons formatted as \(file . pos).
-When STRICT is non-nil, only consider Org-roam’s database."
+When STRICT is non-nil, only consider Org-roam’s database.
+When KEEP-BUFFER-P is non-nil, keep the buffers navigated by Org-roam open."
   (let ((file (or (org-roam-id-get-file id)
-                  (unless strict
-                    (org-id-find-id-file id)))))
+                  (unless strict (org-id-find-id-file id)))))
     (when file
-      (org-id-find-id-in-file id file markerp))))
+      (let ((existing-buf (find-buffer-visiting file))
+            (res (org-id-find-id-in-file id file markerp)))
+        (when (and (not keep-buffer-p)
+                   existing-buf)
+          (kill-buffer existing-buf))
+        res))))
 
 (defun org-roam-id-open (id-or-marker &optional strict)
   "Go to the entry with ID-OR-MARKER.
@@ -1124,7 +1111,7 @@ to the default behaviour of `org-id-open'.
 When STRICT is non-nil, only consider Org-roam’s database."
   (when-let ((marker (if (markerp id-or-marker)
                          id-or-marker
-                       (org-roam-id-find id-or-marker t strict))))
+                       (org-roam-id-find id-or-marker t strict t))))
     (org-goto-marker-or-bmk marker)
     (set-marker marker nil)))
 
@@ -1205,7 +1192,7 @@ This is active when `org-roam-completion-everywhere' is non-nil."
               collection #'org-roam--get-titles
               exit-fn (lambda (str _status)
                         (delete-char (- (length str)))
-                        (insert "[[" str "]]")))))
+                        (insert "[[roam:" str "]]")))))
     (when collection
       (let ((prefix (buffer-substring-no-properties start end)))
         (list start end
@@ -1512,7 +1499,7 @@ Otherwise, behave as if called interactively."
   :global t
   (cond
    (org-roam-mode
-    (unless (or (and (boundp 'emacsql-sqlite3-executable)
+    (unless (or (and (bound-and-true-p emacsql-sqlite3-executable)
                      (file-executable-p emacsql-sqlite3-executable))
                 (executable-find "sqlite3"))
       (lwarn '(org-roam) :error "Cannot find executable 'sqlite3'. \
