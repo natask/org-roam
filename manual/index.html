@@ -97,6 +97,7 @@ ul.no-bullet {list-style: none}
     <li><a name="toc-Directories-and-Files-1" href="Directories-and-Files.html#Directories-and-Files">8.1 Directories and Files</a></li>
     <li><a name="toc-The-Org_002droam-Buffer-1" href="The-Org_002droam-Buffer.html#The-Org_002droam-Buffer">8.2 The Org-roam Buffer</a></li>
     <li><a name="toc-Org_002droam-Files-1" href="Org_002droam-Files.html#Org_002droam-Files">8.3 Org-roam Files</a></li>
+    <li><a name="toc-Org_002droam-Faces-1" href="Org_002droam-Faces.html#Org_002droam-Faces">8.4 Org-roam Faces</a></li>
   </ul></li>
   <li><a name="toc-Inserting-Links-1" href="Inserting-Links.html#Inserting-Links">9 Inserting Links</a></li>
   <li><a name="toc-Navigating-Around-1" href="Navigating-Around.html#Navigating-Around">10 Navigating Around</a>
@@ -117,7 +118,12 @@ ul.no-bullet {list-style: none}
     <li><a name="toc-The-roam_002dfile-protocol-1" href="The-roam_002dfile-protocol.html#The-roam_002dfile-protocol">14.3 The roam-file protocol</a></li>
     <li><a name="toc-The-roam_002dref-protocol-1" href="The-roam_002dref-protocol.html#The-roam_002dref-protocol">14.4 The roam-ref protocol</a></li>
   </ul></li>
-  <li><a name="toc-TODO-Daily-Notes" href="Daily-Notes.html#Daily-Notes">15 <strong>TODO</strong> Daily Notes</a></li>
+  <li><a name="toc-Daily_002dnotes-1" href="Daily_002dnotes.html#Daily_002dnotes">15 Daily-notes</a>
+  <ul class="no-bullet">
+    <li><a name="toc-Configuration-1" href="Configuration.html#Configuration">15.1 Configuration</a></li>
+    <li><a name="toc-Capturing-and-finding-daily_002dnotes-1" href="Capturing-and-finding-daily_002dnotes.html#Capturing-and-finding-daily_002dnotes">15.2 Capturing and finding daily-notes</a></li>
+    <li><a name="toc-Navigation-1" href="Navigation.html#Navigation">15.3 Navigation</a></li>
+  </ul></li>
   <li><a name="toc-Diagnosing-and-Repairing-Files-1" href="Diagnosing-and-Repairing-Files.html#Diagnosing-and-Repairing-Files">16 Diagnosing and Repairing Files</a></li>
   <li><a name="toc-Finding-Unlinked-References-1" href="Finding-Unlinked-References.html#Finding-Unlinked-References">17 Finding Unlinked References</a></li>
   <li><a name="toc-Performance-Optimization-1" href="Performance-Optimization.html#Performance-Optimization">18 Performance Optimization</a>
@@ -148,6 +154,7 @@ ul.no-bullet {list-style: none}
   <ul class="no-bullet">
     <li><a name="toc-How-do-I-have-more-than-one-Org_002droam-directory_003f-1" href="How-do-I-have-more-than-one-Org_002droam-directory_003f.html#How-do-I-have-more-than-one-Org_002droam-directory_003f">20.1 How do I have more than one Org-roam directory?</a></li>
     <li><a name="toc-How-do-I-migrate-from-Roam-Research_003f-1" href="How-do-I-migrate-from-Roam-Research_003f.html#How-do-I-migrate-from-Roam-Research_003f">20.2 How do I migrate from Roam Research?</a></li>
+    <li><a name="toc-How-do-I-create-a-note-whose-title-already-matches-one-of-the-candidates_003f-1" href="How-do-I-create-a-note-whose-title-already-matches-one-of-the-candidates_003f.html#How-do-I-create-a-note-whose-title-already-matches-one-of-the-candidates_003f">20.3 How do I create a note whose title already matches one of the candidates?</a></li>
   </ul></li>
 </ul>
 </div>
@@ -163,7 +170,7 @@ Next: <a href="Introduction.html#Introduction" accesskey="n" rel="next">Introduc
 <h1 class="top">Org-roam User Manual</h1>
 
 
-<p>This manual is for Org-roam version 1.2.1.
+<p>This manual is for Org-roam version 1.2.2.
 </p>
 <blockquote>
 <p>Copyright (C) 2020-2020 Jethro Kuan &lt;jethrokuan95@gmail.com&gt;
@@ -208,7 +215,7 @@ General Public License for more details.
 </td></tr>
 <tr><td align="left" valign="top">&bull; <a href="Roam-Protocol.html#Roam-Protocol">Roam Protocol</a>:</td><td>&nbsp;&nbsp;</td><td align="left" valign="top">
 </td></tr>
-<tr><td align="left" valign="top">&bull; <a href="Daily-Notes.html#Daily-Notes">Daily Notes</a>:</td><td>&nbsp;&nbsp;</td><td align="left" valign="top">
+<tr><td align="left" valign="top">&bull; <a href="Daily_002dnotes.html#Daily_002dnotes">Daily-notes</a>:</td><td>&nbsp;&nbsp;</td><td align="left" valign="top">
 </td></tr>
 <tr><td align="left" valign="top">&bull; <a href="Diagnosing-and-Repairing-Files.html#Diagnosing-and-Repairing-Files">Diagnosing and Repairing Files</a>:</td><td>&nbsp;&nbsp;</td><td align="left" valign="top">
 </td></tr>
@@ -262,6 +269,8 @@ Concepts and Configuration
 </td></tr>
 <tr><td align="left" valign="top">&bull; <a href="Org_002droam-Files.html#Org_002droam-Files">Org-roam Files</a>:</td><td>&nbsp;&nbsp;</td><td align="left" valign="top">
 </td></tr>
+<tr><td align="left" valign="top">&bull; <a href="Org_002droam-Faces.html#Org_002droam-Faces">Org-roam Faces</a>:</td><td>&nbsp;&nbsp;</td><td align="left" valign="top">
+</td></tr>
 <tr><th colspan="3" align="left" valign="top"><pre class="menu-comment">
 
 Navigating Around
@@ -287,6 +296,16 @@ Roam Protocol
 <tr><td align="left" valign="top">&bull; <a href="The-roam_002dfile-protocol.html#The-roam_002dfile-protocol">The roam-file protocol</a>:</td><td>&nbsp;&nbsp;</td><td align="left" valign="top">
 </td></tr>
 <tr><td align="left" valign="top">&bull; <a href="The-roam_002dref-protocol.html#The-roam_002dref-protocol">The roam-ref protocol</a>:</td><td>&nbsp;&nbsp;</td><td align="left" valign="top">
+</td></tr>
+<tr><th colspan="3" align="left" valign="top"><pre class="menu-comment">
+
+Daily-notes
+
+</pre></th></tr><tr><td align="left" valign="top">&bull; <a href="Configuration.html#Configuration">Configuration</a>:</td><td>&nbsp;&nbsp;</td><td align="left" valign="top">
+</td></tr>
+<tr><td align="left" valign="top">&bull; <a href="Capturing-and-finding-daily_002dnotes.html#Capturing-and-finding-daily_002dnotes">Capturing and finding daily-notes</a>:</td><td>&nbsp;&nbsp;</td><td align="left" valign="top">
+</td></tr>
+<tr><td align="left" valign="top">&bull; <a href="Navigation.html#Navigation">Navigation</a>:</td><td>&nbsp;&nbsp;</td><td align="left" valign="top">
 </td></tr>
 <tr><th colspan="3" align="left" valign="top"><pre class="menu-comment">
 
@@ -326,6 +345,8 @@ FAQ
 </pre></th></tr><tr><td align="left" valign="top">&bull; <a href="How-do-I-have-more-than-one-Org_002droam-directory_003f.html#How-do-I-have-more-than-one-Org_002droam-directory_003f">How do I have more than one Org-roam directory?</a>:</td><td>&nbsp;&nbsp;</td><td align="left" valign="top">
 </td></tr>
 <tr><td align="left" valign="top">&bull; <a href="How-do-I-migrate-from-Roam-Research_003f.html#How-do-I-migrate-from-Roam-Research_003f">How do I migrate from Roam Research?</a>:</td><td>&nbsp;&nbsp;</td><td align="left" valign="top">
+</td></tr>
+<tr><td align="left" valign="top">&bull; <a href="How-do-I-create-a-note-whose-title-already-matches-one-of-the-candidates_003f.html#How-do-I-create-a-note-whose-title-already-matches-one-of-the-candidates_003f">How do I create a note whose title already matches one of the candidates?</a>:</td><td>&nbsp;&nbsp;</td><td align="left" valign="top">
 </td></tr>
 <tr><th colspan="3" align="left" valign="top"><pre class="menu-comment">
 
