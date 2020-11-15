@@ -8,13 +8,13 @@
 #+texinfo_dir_category: Emacs
 #+texinfo_dir_title: Org-roam: (org-roam).
 #+texinfo_dir_desc: Rudimentary Roam Replica for Emacs.
-#+subtitle: for version 1.2.2
+#+subtitle: for version 1.2.3
 
 #+options: H:4 num:3 toc:nil creator:t ':t
 #+property: header-args :eval never
 #+texinfo: @noindent
 
-This manual is for Org-roam version 1.2.2.
+This manual is for Org-roam version 1.2.3.
 
 #+BEGIN_QUOTE
 Copyright (C) 2020-2020 Jethro Kuan <jethrokuan95@gmail.com>
@@ -379,19 +379,29 @@ as nodes, and links between them as edges. The generated graph can be used to
 navigate to the files, but this requires some additional setup (see [[*Roam
 Protocol][Roam Protocol]]).
 
-* Anatomy of an Org-roam File
+* Files
+:PROPERTIES:
+:ID:       3edec3e6-8e26-4a43-8a0a-bf204268bbb3
+:END:
 
-The bulk of Org-roam's functionality is built on top of vanilla Org-mode.
-However, to support additional functionality, Org-roam adds several
-Org-roam-specific keywords.
+In Org-roam, notes typically consist of multiple files, where each file is a
+zettel.
 
-** Titles
+While the bulk of Org-roam's functionality is built on top of vanilla Org-mode,
+Org-roam adds several Org-roam-specific keywords to support additional
+functionality.
 
-To easily find a note, a title needs to be prescribed to a note. A note can have
-many titles: this allows a note to be referred to by different names, which is
-especially useful for topics or concepts with acronyms. For example, for a note
-like "World War 2", it may be desirable to also refer to it using the acronym
-"WWII".
+This section explains the important components of a file, and the extensions to
+Org-mode.
+
+** File Titles
+
+To easily find a note, a title needs to be prescribed to a note.
+
+A note can have many titles: this allows a note to be referred to by different
+names, which is especially useful for topics or concepts with acronyms. For
+example, for a note like "World War 2", it may be desirable to also refer to it
+using the acronym "WWII".
 
 Org-roam calls ~org-roam--extract-titles~ to extract titles. It uses the
 variable ~org-roam-title-sources~, to control how the titles are extracted. The
@@ -417,50 +427,114 @@ Take for example the following org file:
 | ~'headline~ | '("Headline")            |
 | ~'alias~    | '("WWII" "World War II") |
 
-One can freely control which extraction methods to use by customizing
-~org-roam-title-sources~: see the doc-string for the variable for more
-information. If all methods of title extraction return no results, the file-name
-is used in place of the titles for completions.
+If no title is provided, Org-roam defaults to using the file-path.
 
-If you wish to add your own title extraction method, you may push a symbol
-~'foo~ into ~org-roam-title-sources~, and define a
-~org-roam--extract-titles-foo~ which accepts no arguments. See
-~org-roam--extract-titles-title~ for an example.
+*** Customizing Title Extraction
 
-** Tags
+To control how Org-roam extracts titles, customize ~org-roam-title-sources~. If
+all methods of title extraction return no results, the file-name is used as the
+note's title.
+
+- User Option: org-roam-title-sources
+
+  The list of sources from which to retrieve a note title.
+  Each element in the list is either:
+
+1. a symbol -- this symbol corresponds to a title retrieval function, which
+   returns the list of titles for the current buffer
+  2. a list of symbols -- symbols in the list are treated as with (1). The
+     return value of this list is the first symbol in the list returning a
+     non-nil value.
+
+  The return results of the root list are concatenated.
+
+  For example the setting: '((title headline) alias) means the following:
+
+  1. Return the 'title + 'alias, if the title of current buffer is non-empty;
+  2. Or return 'headline + 'alias otherwise.
+
+  The currently supported symbols are:
+
+   ~'title~
+   The ~#+title~ property of org file.
+
+   ~'alias~
+   The ~#+roam_alias~ property of the org file, using
+   space-delimited strings.
+
+   ~'headline~
+   The first headline in the org file.
+
+Adding your own title extraction method requires two steps. First, define a
+method ~(defun org-roam--extract-titles-foo () ...)~, where ~foo~ a
+self-prescribed name for the title extraction method. This method takes no
+arguments, and returns a list of strings (titles). Finally, push the symbol
+~foo~ into ~org-roam-title-sources~. You may need to rebuild the cache from
+scratch to re-process all files to pick up the new titles.
+
+** File Tags
 
 Tags are used as meta-data for files: they facilitate interactions with notes
 where titles are insufficient. For example, tags allow for categorization of
 notes: differentiating between bibliographical and structure notes during
 interactive commands.
 
-Org-roam calls ~org-roam--extract-tags~ to extract tags from files. It uses the
-variable ~org-roam-tag-sources~, to control how tags are extracted. The tag
-extraction methods supported are:
+By default, tags are extracted from the ~#+roam_tags~ property. To add
+additional extraction methods, see [[id:c986edba-9498-4af1-b033-c94b733d42c8][Customizing Tag Extraction]].
 
-1. ~'prop~: This extracts tags from the ~#+roam_tags~ property. Tags are space
-   delimited, and can be multi-word using double quotes.
-2. ~'all-directories~: All sub-directories relative to ~org-roam-directory~ are
-   extracted as tags. That is, if a file is located at relative path
-   ~foo/bar/file.org~, the file will have tags ~foo~ and ~bar~.
-3. ~'last-directory~: Extracts the last directory relative to
-   ~org-roam-directory~ as the tag. That is, if a file is located at relative
-   path ~foo/bar/file.org~, the file will have tag ~bar~.
-4. ~'first-directory~: Extracts the first directory relative to
-   ~org-roam-directory~ as the tag. That is, if a file is located at relative
-   path ~foo/bar/file.org~, the file will have tag ~foo~.
+*** Customizing Tag Extraction
+:PROPERTIES:
+:ID:       c986edba-9498-4af1-b033-c94b733d42c8
+:END:
 
+Org-roam calls ~org-roam--extract-tags~ to extract tags from files. The variable
+~org-roam-tag-sources~, to control how tags are extracted.
+
+- User Option: org-roam-tag-sources
+
+Sources to obtain tags from.
+
+It should be a list of symbols representing any of the following extraction
+methods:
+
+  ~'prop~
+    Extract tags from the ~#+roam_tags~ property.
+    Tags are space delimited.
+    Tags may contain spaces if they are double-quoted.
+    e.g. ~#+roam_tags: TAG "tag with spaces"~
+
+  ~'vanilla~
+    Extract vanilla org-mode tags, including ~#+FILETAGS~ and
+    inherited tags.
+
+  ~'all-directories~
+    Extract sub-directories relative to ~org-roam-directory~.
+    That is, if a file is located at relative path foo/bar/file.org,
+    the file will have tags "foo" and "bar".
+
+  ~'last-directory~
+    Extract the last directory relative to `org-roam-directory'.
+    That is, if a file is located at relative path foo/bar/file.org,
+    the file will have tag \"bar\".
+
+  ~'first-directory~
+    Extract the first directory relative to ~org-roam-directory~.
+    That is, if a file is located at relative path foo/bar/file.org,
+    the file will have tag "foo"
+    
 By default, only the ~'prop~ extraction method is enabled. To enable the other
-extraction methods, you may modify ~org-roam-tag-sources~:
+extraction methods, you may modify ~org-roam-tag-sources~, for example:
 
 #+BEGIN_SRC emacs-lisp
 (setq org-roam-tag-sources '(prop last-directory))
 #+END_SRC
 
-If you wish to add your own tag extraction method, you may push a symbol ~'foo~
-into ~org-roam-tag-sources~, and define a ~org-roam--extract-tags-foo~ which
-accepts the absolute file path as its argument. See
-~org-roam--extract-tags-prop~ for an example.
+Adding your own tag extraction method requires two steps. First, define a method
+~(defun org-roam--extract-tags-foo (file) ...)~, where ~foo~ a self-prescribed
+name for the tag extraction method. This method takes the file path as an
+argument, and returns a list of strings (titles). Finally, push the symbol ~foo~
+into ~org-roam-tag-sources~. You may need to rebuild the cache from scratch to
+re-process all files to pick up the new tags.
 
 ** File Refs
 
@@ -492,6 +566,7 @@ These keys also come in useful for when taking website notes, using the
 You may assign multiple refs to a single file, for example when you want
 multiple papers in a series to share the same note, or an article has a citation
 key and a URL at the same time.
+
 * The Templating System
 
 Rather than creating blank files on ~org-roam-insert~ and ~org-roam-find-file~,
@@ -711,23 +786,6 @@ registers this link type, and interprets the path as follows:
 - ~[[roam:title*headline]]~ :: links to the headline "headline" in the Org-roam
   file with title or alias "title"
 
-~roam~ links support auto-completion via ~completion-at-point~: simply call
-~completion-at-point~ within a roam link. Users of ~company-mode~ may want to
-prepend ~company-capf~ to the beginning of variable ~company-backends~.
-
-To easily insert ~roam~ links, one may wish to use a package like [[https://github.com/emacsorphanage/key-chord/][key-chord]]. In
-the following example, typing "[[" will insert a stub ~roam~ link:
-
-#+BEGIN_SRC emacs-lisp
-(key-chord-define org-mode-map "[[" #'my/insert-roam-link)
-
-(defun my/insert-roam-link ()
-    "Inserts an Org-roam link."
-    (interactive)
-    (insert "[[roam:]]")
-    (backward-char 2))
-#+END_SRC
-
 - User Option: org-roam-link-title-format
 
   To distinguish between org-roam links and regular links, one may choose to use
@@ -736,12 +794,6 @@ the following example, typing "[[" will insert a stub ~roam~ link:
   If your version of Org is at least ~9.2~, consider styling the link differently,
   by customizing the ~org-roam-link~, and ~org-roam-link-current~ faces.
 
-- User Option: org-roam-completion-ignore-case
-
-  When non-nil, the ~roam~ link completions are ignore case. For example,
-  calling ~completion-at-point~ within ~[[roam:fo]]~ will present a completion
-  for a file with title "Foo". Defaults to ~t~.
-
 - User Option: org-roam-link-auto-replace
 
   When non-nil, ~roam~ links will be replaced with ~file~ or ~id~ links when
@@ -749,6 +801,61 @@ the following example, typing "[[" will insert a stub ~roam~ link:
   desirable to maintain compatibility with vanilla Org, but resolved links are
   harder to edit. Defaults to ~t~.
 
+* Completions
+
+Completions for Org-roam are provided via ~completion-at-point~. Completion
+suggestions are implemented as separate functions. Org-roam installs all
+functions in ~org-roam-completion-functions~ to ~completion-at-point-functions~.
+
+- Variable: org-roam-completion-functions
+
+  The list of functions to be used with ~completion-at-point~.
+
+- User Option: org-roam-completion-ignore-case
+
+  When non-nil, the ~roam~ link completions are ignore case. For example,
+  calling ~completion-at-point~ within ~[[roam:fo]]~ will present a completion
+  for a file with title "Foo". Defaults to ~t~.
+
+To use the completions from Org-roam with ~company-mode~, prepend ~company-capf~
+to variable ~company-backends~.
+
+** Link Completion
+
+~roam~ links support auto-completion via ~completion-at-point~: simply call
+~M-x completion-at-point~ within a roam link. That is, where the ~|~ character
+represents the cursor:
+
+- ~[[|]]~: completes for a file title
+- ~[[roam:]]~: completes for a file title
+- ~[[*|]]~: completes for a headline within this file
+- ~[[foo*|]]~: completes a headline within the file with title "foo"
+- ~[[roam:foo*|]]~ completes a headline within the file with title "foo"
+
+Completions account for the current input. For example, for ~[[f|]]~, the
+completions (by default) only show for files with titles that start with "f".
+
+- Function: org-roam-link-complete-at-point
+
+  Do appropriate completion for the link at point.
+
+*** Link Completions Everywhere
+
+Org-roam is able to provide completions from the current word at point, enabling
+as-you-type link completions. However, this is disabled by default: the author
+believes that linking should be a deliberate action and linking should be
+performed with great care.
+
+Setting ~org-roam-completion-everywhere~ to ~t~ will enable word-at-point
+completions.
+
+- User Option: org-roam-completion-everywhere
+
+  If non-nil, provide completions from the current word at point. That is, in
+  the scenario ~this is a sent|~, calling ~completion-at-point~ will show
+  completions for titles that begin with "sent".
+
+** TODO Tag Completion
 * Navigating Around
 ** Index File
 
@@ -882,7 +989,7 @@ One may want to exclude certain files to declutter the graph.
 
 This setting excludes all files whose path contain "private" or "dailies".
 
-* Org-roam Completion System
+* Minibuffer Completion
 
 Org-roam allows customization of which minibuffer completion system to use for
 its interactive commands. The default setting uses Emacs' standard
@@ -1051,7 +1158,7 @@ in the generated graph.
 
 ** The roam-ref protocol
 
-This protocol finds or creates a new note with a given ~roam_key~ (see [[*Anatomy of an Org-roam File][Anatomy of an Org-roam File]]):
+This protocol finds or creates a new note with a given ~roam_key~ (see [[id:3edec3e6-8e26-4a43-8a0a-bf204268bbb3][Files]]):
 
 [[file:images/roam-ref.gif]]
 
@@ -1123,20 +1230,19 @@ specifying the outline-path to a heading:
            #'org-roam-capture--get-point
            "* %?"
            :file-name "daily/%<%Y-%m-%d>"
-           :head "#+title: %<%Y-%m-%d>\n\n* Lab notes\n* Journal"
-           :olp ("Journal"))
+           :head "#+title: %<%Y-%m-%d>\n"
+           :olp ("Lab notes"))
 
           ("j" "journal" entry
            #'org-roam-capture--get-point
            "* %?"
            :file-name "daily/%<%Y-%m-%d>"
-           :head "#+title: %<%Y-%m-%d>\n\n* Lab notes\n* Journal"
-           :olp ("Lab notes"))))
+           :head "#+title: %<%Y-%m-%d>\n"
+           :olp ("Journal"))))
 #+end_src
 
 The template ~l~ will put its notes under the heading ‘Lab notes’, and the
-template ~j~ will put its notes under the heading ‘Journal’. When you use
-~:olp~, make sure that the headings are present in ~:head~.
+template ~j~ will put its notes under the heading ‘Journal’. 
 
 ** Capturing and finding daily-notes
 
