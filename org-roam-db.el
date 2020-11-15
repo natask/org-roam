@@ -573,7 +573,7 @@ If FORCE, force a rebuild of the cache from scratch."
            (org-roam-db--clear-file file)
            (lwarn '(org-roam) :warning
                   "Skipping unreadable file while building cache: %s" file))))
-    (org-roam-message "total: Δ%s, files-modified: Δ%s, ids: Δ%s, links: Δ%s, tags: Δ%s, titles: Δ%s, refs: Δ%s, deleted: Δ%s"
+    (org-roam-message "total: %s, files-modified: Δ%s, ids: Δ%s, links: Δ%s, tags: Δ%s, titles: Δ%s, refs: Δ%s, deleted: Δ%s"
                       (length org-roam-files)
                       modified-count
                       id-count
