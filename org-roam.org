@@ -855,7 +855,16 @@ completions.
   the scenario ~this is a sent|~, calling ~completion-at-point~ will show
   completions for titles that begin with "sent".
 
-** TODO Tag Completion
+** Tag Completion
+
+Org-roam facilitates the insertion of existing tags via ~completion-at-point~.
+
+That is, suppose you have notes with tags "foo", and "bar". Now, in a note, if
+you're on a line beginning with ~#+roam_tags:~, completions for these will
+appear as-you-type if they match.
+
+This functionality is implemented in ~org-roam-complete-tags-at-point~.
+
 * Navigating Around
 ** Index File
 
@@ -1462,8 +1471,8 @@ using [[https://github.com/raxod502/el-patch][el-patch]]:
 #+BEGIN_SRC emacs-lisp
   (use-package el-patch
     :straight (:host github
-                     :repo "raxod502/el-patch"
-                     :branch "develop"))
+               :repo "raxod502/el-patch"
+               :branch "develop"))
 
   (eval-when-compile
     (require 'el-patch))
@@ -1482,7 +1491,7 @@ using [[https://github.com/raxod502/el-patch][el-patch]]:
                          (if begin
                              (funcall deft-parse-title-function
                                       (substring contents begin (match-end 0))))))
-                     (org-roam--get-title-or-slug file))))
+                     (org-roam-db--get-title file))))
 #+END_SRC
 
 The Deft interface can slow down quickly when the number of files get huge.
