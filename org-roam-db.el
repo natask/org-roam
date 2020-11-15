@@ -542,6 +542,26 @@ If FORCE, force a rebuild of the cache from scratch."
                       (plist-get count-plist :ref-count)
                       deleted-count)))
 
+(defun org-roam-db--get-file-hash-from-db (&optional file-path)
+  (setq file-path (or file-path
+                      (buffer-file-name (buffer-base-buffer))))
+  (caar (org-roam-db-query [:select hash :from files
+                              :where (= file $s1)] file-path))
+  )
+
+(defun org-roam-db-update-file (&optional file-path)
+  "Update Org-roam cache for FILE-PATH.
+If the file does not exist anymore, remove it from the cache.
+If the file exists, update the cache with information."
+  (setq file-path (or file-path
+                      (buffer-file-name (buffer-base-buffer))))
+  (let ((content-hash (org-roam-db--file-hash file-path))
+        (db-hash  (org-roam-db--get-file-hash-from-db file-path)))
+    (unless (string= content-hash db-hash)
+      (let ((count-plist (org-roam-db--update-files (list (cons file-path content-hash ))  1)))
+        (org-roam-message "updated db for: %s" file-path))))
+  )
+
 (defun org-roam-db--update-files (modified-files total-count)
   (let* ((gc-cons-threshold org-roam-db-gc-threshold)
          (org-agenda-files nil)
@@ -603,7 +623,7 @@ If FORCE, force a rebuild of the cache from scratch."
   "Update the database."
   (pcase org-roam-db-update-method
     ('immediate
-     (org-roam-db-build-cache))
+     (org-roam-db-update-file))
     ('idle-timer
      (org-roam-db-mark-dirty))
     (_
