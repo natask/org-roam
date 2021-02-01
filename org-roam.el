@@ -1455,7 +1455,8 @@ To be added to `org-roam-title-change-hook'."
                                             current-path)))
     (dolist (file files-affected)
       (org-roam-with-file (car file) nil
-        (org-roam--replace-link (list :path current-path :id current-id) (list :path current-path :id current-id) old-title new-title)))))
+        (org-roam--replace-link (list :path current-path :id current-id) (list :path current-path :id current-id) old-title new-title)))
+    (org-roam-buffer-update)))
 
 (defun org-roam-sync-title-to-file-name ()
   "Sync the title of current buffer to file name."
