@@ -640,7 +640,9 @@ Reads from the \"roam_alias\" property."
                             (-reduce #'concat))
                       "")))
     (condition-case nil
-        (split-string-and-unquote aliases)
+        (-as-> aliases it
+               (split-string it "\"")
+               (-filter (-compose #'not #'string-empty-p) it))
       (error
        (progn
          (lwarn '(org-roam) :error
