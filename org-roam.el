@@ -635,9 +635,9 @@ If FILE-PATH is nil, use the current file."
   "Return the aliases from the current buffer.
 Reads from the \"roam_alias\" property."
   (let* ((prop (org-roam--extract-global-props '("ROAM_ALIAS")))
-         (aliases (or (->> prop
-                            (mapcar #'cdr)
-                            (-reduce #'concat))
+         (aliases (or (-as-> prop it
+                            (mapcar #'cdr it)
+                            (-reduce #'concat it))
                       "")))
     (condition-case nil
         (split-string-and-unquote aliases)
