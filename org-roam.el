@@ -633,7 +633,9 @@ If FILE-PATH is nil, use the current file."
 
 (defun org-roam--extract-titles-alias ()
   "Return the aliases from the current buffer.
-Reads from the \"roam_alias\" property."
+Reads from the \"roam_alias\" property.
+It can read multiple \"roam_alias\" properties in a file.
+Treats a sequence unquoted strings as single alias."
   (let* ((prop (org-roam--extract-global-props '("ROAM_ALIAS")))
          (aliases (or (-as-> prop it
                             (mapcar #'cdr it)
@@ -641,7 +643,7 @@ Reads from the \"roam_alias\" property."
                       "")))
     (condition-case nil
         (-as-> aliases it
-               (split-string-and-unquote it)
+               (split-string it "\"")
                (-filter (-compose #'not #'string-empty-p #'s-trim) it)
                )
       (error
