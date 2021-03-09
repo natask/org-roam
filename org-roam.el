@@ -857,7 +857,7 @@ Each ref is returned as a cons of its type and its key."
   (let* ((prop (org-roam--extract-global-props '("CREATED")))
          (creation-time (cdr (assoc "CREATED" prop))))
     (when creation-time
-      (list creation-time))))
+      (org-read-date nil t creation-time nil))))
 
 ;;;; Title/Path/Slug conversion
 (defun org-roam--path-to-slug (path)
