@@ -275,7 +275,7 @@ If HASH is set, use HASH as the file hash without recomputing."
          (atime (file-attribute-access-time attr))
          (mtime (file-attribute-modification-time attr))
          (ctime (org-roam--extract-creation-time))
-         (hash (or hash (org-roam-db--file-hash)))
+         (hash (or hash (org-roam-db--file-hash))))
     (when update-p
       (org-roam-db-query [:delete :from files
                           :where (= file $s1)]
