@@ -852,6 +852,13 @@ Each ref is returned as a cons of its type and its key."
   "Extract the ref from current buffer and return the type and the key of the ref."
   (car (org-roam--extract-refs)))
 
+(defun org-roam--extract-creation-time ()
+  "Extract creation time from \"#+created\" of the current buffer."
+  (let* ((prop (org-roam--extract-global-props '("CREATED")))
+         (creation-time (cdr (assoc "CREATED" prop))))
+    (when creation-time
+      (list creation-time))))
+
 ;;;; Title/Path/Slug conversion
 (defun org-roam--path-to-slug (path)
   "Return a slug from PATH."
