@@ -266,15 +266,16 @@ This is equivalent to removing the node from the graph."
                        file)))
 
 ;;;;; Inserting
-(defun org-roam-db--insert-meta (&optional update-p)
+(defun org-roam-db--insert-meta (&optional update-p hash)
   "Update the metadata of the current buffer into the cache.
-If UPDATE-P is non-nil, first remove the meta for the file in the database."
+If UPDATE-P is non-nil, first remove the meta for the file in the database.
+If HASH is set, use HASH as the file hash without recomputing."
   (let* ((file (or org-roam-file-name (buffer-file-name)))
          (attr (file-attributes file))
          (atime (file-attribute-access-time attr))
          (mtime (file-attribute-modification-time attr))
          (ctime (org-roam--extract-creation-time))
-         (hash (org-roam-db--file-hash)))
+         (hash (or hash (org-roam-db--file-hash)))
     (when update-p
       (org-roam-db-query [:delete :from files
                           :where (= file $s1)]
@@ -586,22 +587,16 @@ FILES is a list of (file . hash) pairs."
     ;; We do this so that link extraction is cheaper: this eliminates the need
     ;; to read the file to check if the ID really exists
     (pcase-dolist (`(,file . ,contents-hash) modified-files)
-      (let* ((attr (file-attributes file))
-             (atime (file-attribute-access-time attr))
-             (mtime (file-attribute-modification-time attr)))
-        (condition-case nil
-            (org-roam--with-temp-buffer file
-              (org-roam-db-query
-               [:insert :into files
-                :values $v1]
-               (vector file contents-hash (list :atime atime :mtime mtime)))
-              (when org-roam-enable-headline-linking
-                (setq id-count (+ id-count (org-roam-db--insert-ids)))))
-          (file-error
-           (setq error-count (1+ error-count))
-           (org-roam-db--clear-file file)
-           (lwarn '(org-roam) :warning
-                  "Skipping unreadable file while building cache: %s" file)))))
+      (condition-case nil
+          (org-roam--with-temp-buffer file
+            (org-roam-db--insert-meta 'nil contents-hash)
+            (when org-roam-enable-headline-linking
+              (setq id-count (+ id-count (org-roam-db--insert-ids)))))
+        (file-error
+         (setq error-count (1+ error-count))
+         (org-roam-db--clear-file file)
+         (lwarn '(org-roam) :warning
+                "Skipping unreadable file while building cache: %s" file))))
 
     ;; Process titles, tags, links and ref links of file
     (pcase-dolist (`(,file . _) modified-files)
