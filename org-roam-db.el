@@ -51,6 +51,7 @@
 (declare-function org-roam--org-roam-file-p                "org-roam")
 (declare-function org-roam--extract-titles                 "org-roam")
 (declare-function org-roam--extract-refs                   "org-roam")
+(declare-function org-roam--extract-creation-time          "org-roam")
 (declare-function org-roam--extract-tags                   "org-roam")
 (declare-function org-roam--extract-ids                    "org-roam")
 (declare-function org-roam--extract-links                  "org-roam")
@@ -273,6 +274,7 @@ If UPDATE-P is non-nil, first remove the meta for the file in the database."
          (attr (file-attributes file))
          (atime (file-attribute-access-time attr))
          (mtime (file-attribute-modification-time attr))
+         (ctime (org-roam--extract-creation-time))
          (hash (org-roam-db--file-hash)))
     (when update-p
       (org-roam-db-query [:delete :from files
@@ -281,7 +283,7 @@ If UPDATE-P is non-nil, first remove the meta for the file in the database."
     (org-roam-db-query
      [:insert :into files
       :values $v1]
-     (list (vector file hash (list :atime atime :mtime mtime))))))
+     (list (vector file hash (list :atime atime :mtime mtime :ctime ctime))))))
 
 (defun org-roam-db--insert-titles (&optional update-p)
   "Update the titles of the current buffer into the cache.
