@@ -4,8 +4,8 @@
 
 ### Added
 
-- [#1396](https://github.com/org-roam/org-roam/pull/1396) add option to choose between prepending, appending, and omitting `roam_tags` in file completion
-- [#1270](https://github.com/org-roam/org-roam/pull/1270) capture: create OLP if it does not exist. Removes need for OLP setup in `:head`.
+- [#1396](https://github.com/org-roam-v2/org-roam-v2/pull/1396) add option to choose between prepending, appending, and omitting `roam_tags` in file completion
+- [#1270](https://github.com/org-roam-v2/org-roam/pull/1270) capture: create OLP if it does not exist. Removes need for OLP setup in `:head`.
 - [#1353](https://github.com/org-roam/org-roam/pull/1353) support file-level property drawers
 
 ### Changed

@@ -1,4 +1,4 @@
-;;; org-roam-protocol.el --- Protocol handler for roam:// links  -*- coding: utf-8; lexical-binding: t; -*-
+;;; org-roam-v2-protocol.el --- Protocol handler for roam:// links  -*- coding: utf-8; lexical-binding: t; -*-
 
 ;; Copyright © 2020 Jethro Kuan <jethrokuan95@gmail.com>
 ;; Author: Jethro Kuan <jethrokuan95@gmail.com>
@@ -26,7 +26,7 @@
 
 ;;; Commentary:
 ;;
-;; We extend org-protocol, adding custom Org-roam handlers. The setup
+;; We extend org-protocol, adding custom org-roam-v2 handlers. The setup
 ;; instructions for `org-protocol' can be found in org-protocol.el.
 ;;
 ;; We define 2 protocols:
@@ -36,18 +36,18 @@
 ;;
 ;;; Code:
 (require 'org-protocol)
-(require 'org-roam)
+(require 'org-roam-v2)
 (eval-when-compile
-  (require 'org-roam-macs))
+  (require 'org-roam-v2-macs))
 (require 'ol) ;; for org-link-decode
 
-(defcustom org-roam-protocol-store-links nil
-  "Whether to store links when capturing websites with `org-roam-protocol'."
+(defcustom org-roam-v2-protocol-store-links nil
+  "Whether to store links when capturing websites with `org-roam-v2-protocol'."
   :type 'boolean
-  :group 'org-roam)
+  :group 'org-roam-v2)
 
 ;;;; Functions
-(defun org-roam-protocol-open-ref (info)
+(defun org-roam-v2-protocol-open-ref (info)
   "Process an org-protocol://roam-ref?ref= style url with INFO.
 
 It opens or creates a note with the given ref.
@@ -58,12 +58,12 @@ It opens or creates a note with the given ref.
         encodeURIComponent(window.getSelection())"
   (unless (plist-get info :ref)
     (user-error "No ref key provided"))
-  (org-roam-plist-map! (lambda (k v)
+  (org-roam-v2-plist-map! (lambda (k v)
                          (org-link-decode
                           (if (equal k :ref)
                               (org-protocol-sanitize-uri v)
                             v))) info)
-  (when org-roam-protocol-store-links
+  (when org-roam-v2-protocol-store-links
     (push (list (plist-get info :ref)
                 (plist-get info :title)) org-stored-links))
   (org-link-store-props :type (and (string-match org-link-plain-re
@@ -75,15 +75,15 @@ It opens or creates a note with the given ref.
                                                               (plist-get info :ref)))
                         :initial (or (plist-get info :body) ""))
   (raise-frame)
-  (org-roam-capture-
+  (org-roam-v2-capture-
    :keys (plist-get info :template)
-   :node (org-roam-node-create :title (plist-get info :title))
+   :node (org-roam-v2-node-create :title (plist-get info :title))
    :info (list :ref (plist-get info :ref)
                :body (plist-get info :body))
-   :templates org-roam-capture-ref-templates)
+   :templates org-roam-v2-capture-ref-templates)
   nil)
 
-(defun org-roam-protocol-open-node (info)
+(defun org-roam-v2-protocol-open-node (info)
   "This handler simply opens the file with emacsclient.
 
 INFO is an alist containing additional information passed by the protocol URL.
@@ -94,14 +94,14 @@ It should contain the FILE key, pointing to the path of the file to open.
 org-protocol://roam-node?node=uuid"
   (when-let ((node (plist-get info :node)))
     (raise-frame)
-    (org-roam-node-visit (org-roam-populate (org-roam-node-create :id node))))
+    (org-roam-v2-node-visit (org-roam-v2-populate (org-roam-v2-node-create :id node))))
   nil)
 
-(push '("org-roam-ref"  :protocol "roam-ref"   :function org-roam-protocol-open-ref)
+(push '("org-roam-v2-ref"  :protocol "roam-ref"   :function org-roam-v2-protocol-open-ref)
       org-protocol-protocol-alist)
-(push '("org-roam-node"  :protocol "roam-node"   :function org-roam-protocol-open-node)
+(push '("org-roam-v2-node"  :protocol "roam-node"   :function org-roam-v2-protocol-open-node)
       org-protocol-protocol-alist)
 
-(provide 'org-roam-protocol)
+(provide 'org-roam-v2-protocol)
 
-;;; org-roam-protocol.el ends here
+;;; org-roam-v2-protocol.el ends here

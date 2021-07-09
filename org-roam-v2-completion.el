@@ -1,4 +1,4 @@
-;;; org-roam-completion.el --- Completion features -*- coding: utf-8; lexical-binding: t; -*-
+;;; org-roam-v2-completion.el --- Completion features -*- coding: utf-8; lexical-binding: t; -*-
 
 ;; Copyright © 2020 Jethro Kuan <jethrokuan95@gmail.com>
 
@@ -30,61 +30,61 @@
 ;;
 ;; The two main functions provided to capf are:
 ;;
-;;    `org-roam-complete-link-at-point' provides completions to nodes
+;;    `org-roam-v2-complete-link-at-point' provides completions to nodes
 ;;    within link brackets
 ;;
-;;    `org-roam-complete-everywhere' provides completions for nodes everywhere,
+;;    `org-roam-v2-complete-everywhere' provides completions for nodes everywhere,
 ;;    matching the symbol at point
 ;;
 ;;; Code:
 (require 'cl-lib)
 (require 'org-element)
 
-(declare-function org-roam--get-titles "org-roam")
+(declare-function org-roam-v2--get-titles "org-roam-v2")
 
-(defcustom org-roam-completion-everywhere nil
+(defcustom org-roam-v2-completion-everywhere nil
   "When non-nil, provide link completion matching outside of Org links."
-  :group 'org-roam
+  :group 'org-roam-v2
   :type 'boolean)
 
-(defvar org-roam-completion-functions (list #'org-roam-complete-link-at-point
-                                            #'org-roam-complete-everywhere)
-  "List of functions to be used with `completion-at-point' for Org-roam.")
+(defvar org-roam-v2-completion-functions (list #'org-roam-v2-complete-link-at-point
+                                            #'org-roam-v2-complete-everywhere)
+  "List of functions to be used with `completion-at-point' for org-roam-v2.")
 
-(defconst org-roam-bracket-completion-re
+(defconst org-roam-v2-bracket-completion-re
   "\\[\\[\\(\\(?:roam:\\)?\\)\\([^z-a]*\\)]]"
   "Regex for completion within link brackets.
 We use this as a substitute for `org-link-bracket-re', because
 `org-link-bracket-re' requires content within the brackets for a match.")
 
-(defun org-roam-complete-everywhere ()
+(defun org-roam-v2-complete-everywhere ()
   "Provides completions for links for any word at point.
 This is a `completion-at-point' function, and is active when
-`org-roam-completion-everywhere' is non-nil."
-  (when (and org-roam-completion-everywhere
+`org-roam-v2-completion-everywhere' is non-nil."
+  (when (and org-roam-v2-completion-everywhere
              (thing-at-point 'word)
              (not (save-match-data (org-in-regexp org-link-any-re))))
     (let ((bounds (bounds-of-thing-at-point 'word)))
       (list (car bounds) (cdr bounds)
             (completion-table-dynamic
              (lambda (_)
-               (funcall #'org-roam--get-titles)))
+               (funcall #'org-roam-v2--get-titles)))
             :exit-function
             (lambda (str _status)
               (delete-char (- (length str)))
               (insert "[[roam:" str "]]"))))))
 
-(defun org-roam-complete-link-at-point ()
+(defun org-roam-v2-complete-link-at-point ()
   "Do appropriate completion for the link at point."
   (let (roam-p start end link-type)
-    (when (org-in-regexp org-roam-bracket-completion-re 1)
+    (when (org-in-regexp org-roam-v2-bracket-completion-re 1)
       (setq roam-p (not (string-blank-p (match-string 1)))
             start (match-beginning 2)
             end (match-end 2))
       (list start end
             (completion-table-dynamic
              (lambda (_)
-               (funcall #'org-roam--get-titles)))
+               (funcall #'org-roam-v2--get-titles)))
             :exit-function
             (lambda (str &rest _)
               (delete-char (- 0 (length str)))
@@ -92,16 +92,16 @@ This is a `completion-at-point' function, and is active when
                               str))
               (forward-char 2))))))
 
-(defun org-roam-complete-at-point ()
+(defun org-roam-v2-complete-at-point ()
   "."
-  (run-hook-with-args-until-success #'org-roam-completion-functions))
+  (run-hook-with-args-until-success #'org-roam-v2-completion-functions))
 
-(defun org-roam--register-completion-functions ()
+(defun org-roam-v2--register-completion-functions ()
   "."
-  (add-hook 'completion-at-point-functions #'org-roam-complete-at-point nil t))
+  (add-hook 'completion-at-point-functions #'org-roam-v2-complete-at-point nil t))
 
-(add-hook 'org-roam-find-file-hook #'org-roam--register-completion-functions)
+(add-hook 'org-roam-v2-find-file-hook #'org-roam-v2--register-completion-functions)
 
-(provide 'org-roam-completion)
+(provide 'org-roam-v2-completion)
 
-;;; org-roam-completion.el ends here
+;;; org-roam-v2-completion.el ends here

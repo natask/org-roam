@@ -1,4 +1,4 @@
-;;; org-roam-db.el --- Org-roam database API -*- coding: utf-8; lexical-binding: t; -*-
+;;; org-roam-v2-db.el --- Org-roam database API -*- coding: utf-8; lexical-binding: t; -*-
 
 ;; Copyright © 2020 Jethro Kuan <jethrokuan95@gmail.com>
 
@@ -37,35 +37,35 @@
 (require 'seq)
 
 (eval-and-compile
-  (require 'org-roam-macs)
+  (require 'org-roam-v2-macs)
   ;; For `org-with-wide-buffer'
   (require 'org-macs))
 (require 'org)
 (require 'ol)
-(require 'org-roam-utils)
+(require 'org-roam-v2-utils)
 
-(defvar org-roam-find-file-hook)
-(defvar org-roam-directory)
-(defvar org-roam-verbose)
+(defvar org-roam-v2-find-file-hook)
+(defvar org-roam-v2-directory)
+(defvar org-roam-v2-verbose)
 (defvar org-agenda-files)
 
-(declare-function org-roam-id-at-point "org-roam")
-(declare-function org-roam--list-all-files "org-roam")
-(declare-function org-roam-node-at-point "org-roam")
+(declare-function org-roam-v2-id-at-point "org-roam-v2")
+(declare-function org-roam-v2--list-all-files "org-roam-v2")
+(declare-function org-roam-v2-node-at-point "org-roam-v2")
 
 ;;;; Options
-(defcustom org-roam-db-location (expand-file-name "org-roam.db" user-emacs-directory)
-  "The full path to file where the Org-roam database is stored.
-If this is non-nil, the Org-roam sqlite database is saved here.
+(defcustom org-roam-v2-db-location (expand-file-name "org-roam-v2.db" user-emacs-directory)
+  "The full path to file where the org-roam-v2 database is stored.
+If this is non-nil, the org-roam-v2 sqlite database is saved here.
 
 It is the user's responsibility to set this correctly, especially
-when used with multiple Org-roam instances."
+when used with multiple org-roam-v2 instances."
   :type 'string
-  :group 'org-roam)
+  :group 'org-roam-v2)
 
-(defcustom org-roam-db-gc-threshold gc-cons-threshold
+(defcustom org-roam-v2-db-gc-threshold gc-cons-threshold
   "The value to temporarily set the `gc-cons-threshold' threshold to.
-During large, heavy operations like `org-roam-db-sync',
+During large, heavy operations like `org-roam-v2-db-sync',
 many GC operations happen because of the large number of
 temporary structures generated (e.g. parsed ASTs). Temporarily
 increasing `gc-cons-threshold' will help reduce the number of GC
@@ -76,71 +76,71 @@ tweaking this number may lead to better overall performance. For
 example, to reduce the number of GCs, one may set it to a large
 value like `most-positive-fixnum'."
   :type 'int
-  :group 'org-roam)
+  :group 'org-roam-v2)
 
-(defconst org-roam-db-version 16)
-(defconst org-roam--sqlite-available-p
-  (with-demoted-errors "Org-roam initialization: %S"
+(defconst org-roam-v2-db-version 16)
+(defconst org-roam-v2--sqlite-available-p
+  (with-demoted-errors "org-roam-v2 initialization: %S"
     (emacsql-sqlite-ensure-binary)
     t))
 
-(defvar org-roam-db--connection (make-hash-table :test #'equal)
-  "Database connection to Org-roam database.")
+(defvar org-roam-v2-db--connection (make-hash-table :test #'equal)
+  "Database connection to org-roam-v2 database.")
 
 ;;;; Core Functions
 
-(defun org-roam-db--get-connection ()
+(defun org-roam-v2-db--get-connection ()
   "Return the database connection, if any."
-  (gethash (expand-file-name org-roam-directory)
-           org-roam-db--connection))
+  (gethash (expand-file-name org-roam-v2-directory)
+           org-roam-v2-db--connection))
 
-(defun org-roam-db ()
-  "Entrypoint to the Org-roam sqlite database.
+(defun org-roam-v2-db ()
+  "Entrypoint to the org-roam-v2 sqlite database.
 Initializes and stores the database, and the database connection.
 Performs a database upgrade when required."
-  (unless (and (org-roam-db--get-connection)
-               (emacsql-live-p (org-roam-db--get-connection)))
-    (let ((init-db (not (file-exists-p org-roam-db-location))))
-      (make-directory (file-name-directory org-roam-db-location) t)
-      (let ((conn (emacsql-sqlite org-roam-db-location)))
+  (unless (and (org-roam-v2-db--get-connection)
+               (emacsql-live-p (org-roam-v2-db--get-connection)))
+    (let ((init-db (not (file-exists-p org-roam-v2-db-location))))
+      (make-directory (file-name-directory org-roam-v2-db-location) t)
+      (let ((conn (emacsql-sqlite org-roam-v2-db-location)))
         (set-process-query-on-exit-flag (emacsql-process conn) nil)
-        (puthash (expand-file-name org-roam-directory)
+        (puthash (expand-file-name org-roam-v2-directory)
                  conn
-                 org-roam-db--connection)
+                 org-roam-v2-db--connection)
         (when init-db
-          (org-roam-db--init conn))
+          (org-roam-v2-db--init conn))
         (let* ((version (caar (emacsql conn "PRAGMA user_version")))
-               (version (org-roam-db--upgrade-maybe conn version)))
+               (version (org-roam-v2-db--upgrade-maybe conn version)))
           (cond
-           ((> version org-roam-db-version)
+           ((> version org-roam-v2-db-version)
             (emacsql-close conn)
             (user-error
-             "The Org-roam database was created with a newer Org-roam version.  "
-             "You need to update the Org-roam package"))
-           ((< version org-roam-db-version)
+             "The org-roam-v2 database was created with a newer org-roam-v2 version.  "
+             "You need to update the org-roam-v2 package"))
+           ((< version org-roam-v2-db-version)
             (emacsql-close conn)
-            (error "BUG: The Org-roam database scheme changed %s"
+            (error "BUG: The org-roam-v2 database scheme changed %s"
                    "and there is no upgrade path")))))))
-  (org-roam-db--get-connection))
+  (org-roam-v2-db--get-connection))
 
-;;;; Entrypoint: (org-roam-db-query)
+;;;; Entrypoint: (org-roam-v2-db-query)
 (define-error 'emacsql-constraint "SQL constraint violation")
-(defun org-roam-db-query (sql &rest args)
-  "Run SQL query on Org-roam database with ARGS.
+(defun org-roam-v2-db-query (sql &rest args)
+  "Run SQL query on org-roam-v2 database with ARGS.
 SQL can be either the emacsql vector representation, or a string."
-  (apply #'emacsql (org-roam-db) sql args))
+  (apply #'emacsql (org-roam-v2-db) sql args))
 
-(defun org-roam-db-query! (handler sql &rest args)
-  "Run SQL query on Org-roam database with ARGS.
+(defun org-roam-v2-db-query! (handler sql &rest args)
+  "Run SQL query on org-roam-v2 database with ARGS.
 SQL can be either the emacsql vector representation, or a string.
 The query is expected to be able to fail, in this situation, run HANDLER."
   (condition-case err
-      (org-roam-db-query sql args)
+      (org-roam-v2-db-query sql args)
     (emacsql-constraint
      (funcall handler err))))
 
 ;;;; Schemata
-(defconst org-roam-db--table-schemata
+(defconst org-roam-v2-db--table-schemata
   '((files
      [(file :unique :primary-key)
       (hash :not-null)
@@ -185,89 +185,89 @@ The query is expected to be able to fail, in this situation, run HANDLER."
        (properties :not-null)]
       (:foreign-key [source] :references nodes [id] :on-delete :cascade)))))
 
-(defconst org-roam-db--table-indices
+(defconst org-roam-v2-db--table-indices
   '((alias-node-id aliases [node-id])
     (refs-node-id refs [node-id])
     (tags-node-id tags [node-id])))
 
-(defun org-roam-db--init (db)
+(defun org-roam-v2-db--init (db)
   "Initialize database DB with the correct schema and user version."
   (emacsql-with-transaction db
     (emacsql db "PRAGMA foreign_keys = ON")
-    (pcase-dolist (`(,table ,schema) org-roam-db--table-schemata)
+    (pcase-dolist (`(,table ,schema) org-roam-v2-db--table-schemata)
       (emacsql db [:create-table $i1 $S2] table schema))
-    (pcase-dolist (`(,index-name ,table ,columns) org-roam-db--table-indices)
+    (pcase-dolist (`(,index-name ,table ,columns) org-roam-v2-db--table-indices)
       (emacsql db [:create-index $i1 :on $i2 $S3] index-name table columns))
-    (emacsql db (format "PRAGMA user_version = %s" org-roam-db-version))))
+    (emacsql db (format "PRAGMA user_version = %s" org-roam-v2-db-version))))
 
-(defun org-roam-db--upgrade-maybe (db version)
+(defun org-roam-v2-db--upgrade-maybe (db version)
   "Upgrades the database schema for DB, if VERSION is old."
   (emacsql-with-transaction db
     'ignore
-    (if (< version org-roam-db-version)
+    (if (< version org-roam-v2-db-version)
         (progn
-          (org-roam-message (format "Upgrading the Org-roam database from version %d to version %d"
-                                    version org-roam-db-version))
-          (org-roam-db-sync t))))
+          (org-roam-v2-message (format "Upgrading the org-roam-v2 database from version %d to version %d"
+                                    version org-roam-v2-db-version))
+          (org-roam-v2-db-sync t))))
   version)
 
-(defun org-roam-db--close (&optional db)
+(defun org-roam-v2-db--close (&optional db)
   "Closes the database connection for database DB.
 If DB is nil, closes the database connection for the database in
-the current `org-roam-directory'."
+the current `org-roam-v2-directory'."
   (unless db
-    (setq db (org-roam-db--get-connection)))
+    (setq db (org-roam-v2-db--get-connection)))
   (when (and db (emacsql-live-p db))
     (emacsql-close db)))
 
-(defun org-roam-db--close-all ()
-  "Closes all database connections made by Org-roam."
-  (dolist (conn (hash-table-values org-roam-db--connection))
-    (org-roam-db--close conn)))
+(defun org-roam-v2-db--close-all ()
+  "Closes all database connections made by org-roam-v2."
+  (dolist (conn (hash-table-values org-roam-v2-db--connection))
+    (org-roam-v2-db--close conn)))
 
 ;;;; Database API
 ;;;;; Clearing
-(defun org-roam-db-clear-all ()
-  "Clears all entries in the Org-roam cache."
+(defun org-roam-v2-db-clear-all ()
+  "Clears all entries in the org-roam-v2 cache."
   (interactive)
-  (when (file-exists-p org-roam-db-location)
-    (dolist (table (mapcar #'car org-roam-db--table-schemata))
-      (org-roam-db-query `[:delete :from ,table]))))
+  (when (file-exists-p org-roam-v2-db-location)
+    (dolist (table (mapcar #'car org-roam-v2-db--table-schemata))
+      (org-roam-v2-db-query `[:delete :from ,table]))))
 
-(defun org-roam-db-clear-file (&optional file)
+(defun org-roam-v2-db-clear-file (&optional file)
   "Remove any related links to the FILE.
 This is equivalent to removing the node from the graph.
 If FILE is nil, clear the current buffer."
   (setq file (or file (buffer-file-name (buffer-base-buffer))))
-  (org-roam-db-query [:delete :from files
+  (org-roam-v2-db-query [:delete :from files
                       :where (= file $s1)]
                      file))
 
 ;;;;; Updating tables
-(defun org-roam-db-insert-file ()
+(defun org-roam-v2-db-insert-file ()
   "Update the files table for the current buffer.
 If UPDATE-P is non-nil, first remove the file in the database."
   (let* ((file (buffer-file-name))
          (attr (file-attributes file))
          (atime (file-attribute-access-time attr))
          (mtime (file-attribute-modification-time attr))
-         (hash (org-roam-db--file-hash)))
-    (org-roam-db-query
+         (hash (org-roam-v2-db--file-hash)))
+    (org-roam-v2-db-query
      [:insert :into files
       :values $v1]
      (list (vector file hash atime mtime)))))
 
-(defun org-roam-db-get-scheduled-time ()
+(defun org-roam-v2-db-get-scheduled-time ()
   "Return the scheduled time at point in ISO8601 format."
   (when-let ((time (org-get-scheduled-time (point))))
     (org-format-time-string "%FT%T%z" time)))
 
-(defun org-roam-db-get-deadline-time ()
+(defun org-roam-v2-db-get-deadline-time ()
   "Return the deadline time at point in ISO8601 format."
   (when-let ((time (org-get-deadline-time (point))))
     (org-format-time-string "%FT%T%z" time)))
 
-(defun org-roam-db-map-headlines (fns)
+(defun org-roam-v2-db-map-headlines (fns)
   "Run FNS over all headlines in the current buffer."
   (org-with-point-at 1
     (org-map-entries
@@ -275,7 +275,7 @@ If UPDATE-P is non-nil, first remove the file in the database."
        (dolist (fn fns)
          (funcall fn))))))
 
-(defun org-roam-db-map-links (fns)
+(defun org-roam-v2-db-map-links (fns)
   "Run FNS over all links in the current buffer."
   (org-with-point-at 1
     (org-element-map (org-element-parse-buffer) 'link
@@ -283,8 +283,8 @@ If UPDATE-P is non-nil, first remove the file in the database."
         (dolist (fn fns)
           (funcall fn link))))))
 
-(defun org-roam-db-insert-file-node ()
-  "Insert the file-level node into the Org-roam cache."
+(defun org-roam-v2-db-insert-file-node ()
+  "Insert the file-level node into the org-roam-v2 cache."
   (org-with-point-at 1
     (when (= (org-outline-level) 0)
       (when-let ((id (org-id-get)))
@@ -292,7 +292,7 @@ If UPDATE-P is non-nil, first remove the file in the database."
                (title (org-link-display-format
                        (or (cadr (assoc "TITLE" (org-collect-keywords '("title"))
                                         #'string-equal))
-                           (file-relative-name file org-roam-directory))))
+                           (file-relative-name file org-roam-v2-directory))))
                (pos (point))
                (todo nil)
                (priority nil)
@@ -304,9 +304,9 @@ If UPDATE-P is non-nil, first remove the file in the database."
                (refs (org-entry-get (point) "ROAM_REFS"))
                (properties (org-entry-properties))
                (olp (org-get-outline-path)))
-          (org-roam-db-query!
+          (org-roam-v2-db-query!
            (lambda (err)
-             (lwarn 'org-roam :warning "%s for %s (%s) in %s"
+             (lwarn 'org-roam-v2 :warning "%s for %s (%s) in %s"
                     (error-message-string err)
                     title id file))
            [:insert :into nodes
@@ -314,14 +314,14 @@ If UPDATE-P is non-nil, first remove the file in the database."
            (vector id file level pos todo priority
                    scheduled deadline title properties olp))
           (when tags
-            (org-roam-db-query
+            (org-roam-v2-db-query
              [:insert :into tags
               :values $v1]
              (mapcar (lambda (tag)
                        (vector id (substring-no-properties tag)))
                      tags)))
           (when aliases
-            (org-roam-db-query
+            (org-roam-v2-db-query
              [:insert :into aliases
               :values $v1]
              (mapcar (lambda (alias)
@@ -335,17 +335,17 @@ If UPDATE-P is non-nil, first remove the file in the database."
                     (progn
                       (push (vector id (match-string 2 ref)
                                     (match-string 1 ref)) rows))
-                  (lwarn '(org-roam) :warning
+                  (lwarn '(org-roam-v2) :warning
                          "%s:%s\tInvalid ref %s, skipping..."
                          (buffer-file-name) (point) ref)))
               (when rows
-                (org-roam-db-query
+                (org-roam-v2-db-query
                  [:insert :into refs
                   :values $v1]
                  rows)))))))))
 
-(defun org-roam-db-insert-node-data ()
-  "Insert node data for headline at point into the Org-roam cache."
+(defun org-roam-v2-db-insert-node-data ()
+  "Insert node data for headline at point into the org-roam-v2 cache."
   (when-let ((id (org-id-get)))
     (let* ((file (buffer-file-name (buffer-base-buffer)))
            (heading-components (org-heading-components))
@@ -353,14 +353,14 @@ If UPDATE-P is non-nil, first remove the file in the database."
            (todo (nth 2 heading-components))
            (priority (nth 3 heading-components))
            (level (nth 1 heading-components))
-           (scheduled (org-roam-db-get-scheduled-time))
-           (deadline (org-roam-db-get-deadline-time))
+           (scheduled (org-roam-v2-db-get-scheduled-time))
+           (deadline (org-roam-v2-db-get-deadline-time))
            (title (org-link-display-format (nth 4 heading-components)))
            (properties (org-entry-properties))
            (olp (org-get-outline-path)))
-      (org-roam-db-query!
+      (org-roam-v2-db-query!
        (lambda (err)
-         (lwarn 'org-roam :warning "%s for %s (%s) in %s"
+         (lwarn 'org-roam-v2 :warning "%s for %s (%s) in %s"
                 (error-message-string err)
                 title id file))
        [:insert :into nodes
@@ -368,27 +368,27 @@ If UPDATE-P is non-nil, first remove the file in the database."
        (vector id file level pos todo priority
                scheduled deadline title properties olp)))))
 
-(defun org-roam-db-insert-aliases ()
-  "Insert aliases for node at point into Org-roam cache."
+(defun org-roam-v2-db-insert-aliases ()
+  "Insert aliases for node at point into org-roam-v2 cache."
   (when-let ((node-id (org-id-get))
              (aliases (org-entry-get (point) "ROAM_ALIASES")))
-    (org-roam-db-query [:insert :into aliases
+    (org-roam-v2-db-query [:insert :into aliases
                         :values $v1]
                        (mapcar (lambda (alias)
                                  (vector node-id alias))
                                (split-string-and-unquote aliases)))))
 
-(defun org-roam-db-insert-tags ()
-  "Insert tags for node at point into Org-roam cache."
+(defun org-roam-v2-db-insert-tags ()
+  "Insert tags for node at point into org-roam-v2 cache."
   (when-let ((node-id (org-id-get))
              (tags (org-get-tags)))
-    (org-roam-db-query [:insert :into tags
+    (org-roam-v2-db-query [:insert :into tags
                         :values $v1]
                        (mapcar (lambda (tag)
                                  (vector node-id (substring-no-properties tag))) tags))))
 
-(defun org-roam-db-insert-refs ()
-  "Insert refs for node at point into Org-roam cache."
+(defun org-roam-v2-db-insert-refs ()
+  "Insert refs for node at point into org-roam-v2 cache."
   (when-let* ((node-id (org-id-get))
               (refs (org-entry-get (point) "ROAM_REFS"))
               (refs (split-string-and-unquote refs)))
@@ -398,36 +398,36 @@ If UPDATE-P is non-nil, first remove the file in the database."
           (if (string-match org-link-plain-re ref)
               (progn
                 (push (vector node-id (match-string 2 ref) (match-string 1 ref)) rows))
-            (lwarn '(org-roam) :warning
+            (lwarn '(org-roam-v2) :warning
                    "%s:%s\tInvalid ref %s, skipping..." (buffer-file-name) (point) ref))))
-      (org-roam-db-query [:insert :into refs
+      (org-roam-v2-db-query [:insert :into refs
                           :values $v1]
                          rows))))
 
-(defun org-roam-db-insert-link (link)
-  "Insert link data for LINK at current point into the Org-roam cache."
+(defun org-roam-v2-db-insert-link (link)
+  "Insert link data for LINK at current point into the org-roam-v2 cache."
   (save-excursion
     (goto-char (org-element-property :begin link))
     (let ((type (org-element-property :type link))
           (dest (org-element-property :path link))
           (properties (list :outline (org-get-outline-path)))
-          (source (org-roam-id-at-point)))
+          (source (org-roam-v2-id-at-point)))
       (when source
-        (org-roam-db-query
+        (org-roam-v2-db-query
          [:insert :into links
           :values $v1]
          (vector (point) source dest type properties))))))
 
 ;;;;; Fetching
-(defun org-roam-db--get-current-files ()
+(defun org-roam-v2-db--get-current-files ()
   "Return a hash-table of file to the hash of its file contents."
-  (let ((current-files (org-roam-db-query [:select [file hash] :from files]))
+  (let ((current-files (org-roam-v2-db-query [:select [file hash] :from files]))
         (ht (make-hash-table :test #'equal)))
     (dolist (row current-files)
       (puthash (car row) (cadr row) ht))
     ht))
 
-(defun org-roam-db--file-hash (&optional file-path)
+(defun org-roam-v2-db--file-hash (&optional file-path)
   "Compute the hash of FILE-PATH, a file or current buffer."
   (if file-path
       (with-temp-buffer
@@ -438,73 +438,73 @@ If UPDATE-P is non-nil, first remove the file in the database."
      (secure-hash 'sha1 (current-buffer)))))
 
 ;;;;; Updating
-(defun org-roam-db-sync (&optional force)
+(defun org-roam-v2-db-sync (&optional force)
   "Synchronize the cache state with the current Org files on-disk.
 If FORCE, force a rebuild of the cache from scratch."
   (interactive "P")
-  (when force (delete-file org-roam-db-location))
-  (org-roam-db--close) ;; Force a reconnect
-  (org-roam-db) ;; To initialize the database, no-op if already initialized
-  (let* ((gc-cons-threshold org-roam-db-gc-threshold)
+  (when force (delete-file org-roam-v2-db-location))
+  (org-roam-v2-db--close) ;; Force a reconnect
+  (org-roam-v2-db) ;; To initialize the database, no-op if already initialized
+  (let* ((gc-cons-threshold org-roam-v2-db-gc-threshold)
          (org-agenda-files nil)
-         (org-roam-files (org-roam--list-all-files))
-         (current-files (org-roam-db--get-current-files))
+         (org-roam-v2-files (org-roam-v2--list-all-files))
+         (current-files (org-roam-v2-db--get-current-files))
          (modified-files nil))
-    (dolist (file org-roam-files)
-      (let ((contents-hash (org-roam-db--file-hash file)))
+    (dolist (file org-roam-v2-files)
+      (let ((contents-hash (org-roam-v2-db--file-hash file)))
         (unless (string= (gethash file current-files)
                          contents-hash)
           (push file modified-files)))
       (remhash file current-files))
-    (emacsql-with-transaction (org-roam-db)
+    (emacsql-with-transaction (org-roam-v2-db)
       (if (fboundp 'dolist-with-progress-reporter)
           (dolist-with-progress-reporter (file (hash-table-keys current-files))
               "Clearing removed files..."
-            (org-roam-db-clear-file file))
+            (org-roam-v2-db-clear-file file))
         (dolist (file (hash-table-keys current-files))
-          (org-roam-db-clear-file file)))
+          (org-roam-v2-db-clear-file file)))
       (if (fboundp 'dolist-with-progress-reporter)
           (dolist-with-progress-reporter (file modified-files)
               "Processing modified files..."
-            (org-roam-db-update-file file))
+            (org-roam-v2-db-update-file file))
         (dolist (file modified-files)
-          (org-roam-db-update-file file))))))
+          (org-roam-v2-db-update-file file))))))
 
-(defun org-roam-db-update-file (&optional file-path)
-  "Update Org-roam cache for FILE-PATH.
+(defun org-roam-v2-db-update-file (&optional file-path)
+  "Update org-roam-v2 cache for FILE-PATH.
 If the file does not exist anymore, remove it from the cache.
 If the file exists, update the cache with information."
   (setq file-path (or file-path (buffer-file-name (buffer-base-buffer))))
-  (let ((content-hash (org-roam-db--file-hash file-path))
-        (db-hash (caar (org-roam-db-query [:select hash :from files
+  (let ((content-hash (org-roam-v2-db--file-hash file-path))
+        (db-hash (caar (org-roam-v2-db-query [:select hash :from files
                                            :where (= file $s1)] file-path))))
     (unless (string= content-hash db-hash)
-      (org-roam-with-file file-path nil
+      (org-roam-v2-with-file file-path nil
         (save-excursion
           (org-set-regexps-and-options 'tags-only)
-          (org-roam-db-clear-file)
-          (org-roam-db-insert-file)
-          (org-roam-db-insert-file-node)
-          (org-roam-db-map-headlines
-           (list #'org-roam-db-insert-node-data
-                 #'org-roam-db-insert-aliases
-                 #'org-roam-db-insert-tags
-                 #'org-roam-db-insert-refs))
-          (org-roam-db-map-links
-           (list #'org-roam-db-insert-link)))))))
+          (org-roam-v2-db-clear-file)
+          (org-roam-v2-db-insert-file)
+          (org-roam-v2-db-insert-file-node)
+          (org-roam-v2-db-map-headlines
+           (list #'org-roam-v2-db-insert-node-data
+                 #'org-roam-v2-db-insert-aliases
+                 #'org-roam-v2-db-insert-tags
+                 #'org-roam-v2-db-insert-refs))
+          (org-roam-v2-db-map-links
+           (list #'org-roam-v2-db-insert-link)))))))
 
-(defun org-roam-db--update-on-save-h ()
+(defun org-roam-v2-db--update-on-save-h ()
   "."
-  (add-hook 'after-save-hook #'org-roam-db-update-file nil t))
+  (add-hook 'after-save-hook #'org-roam-v2-db-update-file nil t))
 
-(add-hook 'org-roam-find-file-hook #'org-roam-db--update-on-save-h)
+(add-hook 'org-roam-v2-find-file-hook #'org-roam-v2-db--update-on-save-h)
 
 ;; Diagnostic Interactives
-(defun org-roam-db-diagnose-node ()
+(defun org-roam-v2-db-diagnose-node ()
   "Print information about node at point."
   (interactive)
-  (prin1 (org-roam-node-at-point)))
+  (prin1 (org-roam-v2-node-at-point)))
 
-(provide 'org-roam-db)
+(provide 'org-roam-v2-db)
 
-;;; org-roam-db.el ends here
+;;; org-roam-v2-db.el ends here

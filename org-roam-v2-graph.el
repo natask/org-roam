@@ -1,4 +1,4 @@
-;;; org-roam-graph.el --- Graphing API -*- coding: utf-8; lexical-binding: t; -*-
+;;; org-roam-v2-graph.el --- Graphing API -*- coding: utf-8; lexical-binding: t; -*-
 
 ;; Copyright © 2020-2021 Jethro Kuan <jethrokuan95@gmail.com>
 
@@ -32,15 +32,15 @@
 ;;; Code:
 (require 'xml) ;xml-escape-string
 (eval-and-compile
-  (require 'org-roam-macs))
-(require 'org-roam-db)
+  (require 'org-roam-v2-macs))
+(require 'org-roam-v2-db)
 
 ;;;; Declarations
-(defvar org-roam-directory)
+(defvar org-roam-v2-directory)
 
 ;;;; Options
-(defcustom org-roam-graph-viewer (executable-find "firefox")
-  "Method to view the org-roam graph.
+(defcustom org-roam-v2-graph-viewer (executable-find "firefox")
+  "Method to view the org-roam-v2 graph.
 It may be one of the following:
   - a string representing the path to the executable for viewing the graph.
   - a function accepting a single argument: the graph file path.
@@ -49,34 +49,34 @@ It may be one of the following:
           (string   :tag "Path to executable")
           (function :tag "Function to display graph" eww-open-file)
           (const    :tag "view-file"))
-  :group 'org-roam)
+  :group 'org-roam-v2)
 
-(defcustom org-roam-graph-executable "dot"
+(defcustom org-roam-v2-graph-executable "dot"
   "Path to graphing executable, or its name."
   :type 'string
-  :group 'org-roam)
+  :group 'org-roam-v2)
 
-(defcustom org-roam-graph-filetype "svg"
+(defcustom org-roam-v2-graph-filetype "svg"
   "File type to generate when producing graphs."
   :type 'string
-  :group 'org-roam)
+  :group 'org-roam-v2)
 
 
-(defcustom org-roam-graph-extra-config nil
+(defcustom org-roam-v2-graph-extra-config nil
   "Extra options passed to graphviz.
 Example:
  '((\"rankdir\" . \"LR\"))"
   :type '(alist)
-  :group 'org-roam)
+  :group 'org-roam-v2)
 
-(defcustom org-roam-graph-edge-extra-config nil
+(defcustom org-roam-v2-graph-edge-extra-config nil
   "Extra edge options passed to graphviz.
 Example:
  '((\"dir\" . \"back\"))"
   :type '(alist)
-  :group 'org-roam)
+  :group 'org-roam-v2)
 
-(defcustom org-roam-graph-node-extra-config
+(defcustom org-roam-v2-graph-node-extra-config
   '(("id" . (("style"      . "bold,rounded,filled")
              ("fillcolor"  . "#EEEEEE")
              ("color"      . "#C9C9C9")
@@ -91,33 +91,33 @@ Example:
                 ("fontcolor"  . "#0A97A6"))))
   "Extra options for graphviz nodes."
   :type '(alist)
-  :group 'org-roam)
+  :group 'org-roam-v2)
 
-(defcustom org-roam-graph-link-hidden-types
+(defcustom org-roam-v2-graph-link-hidden-types
   '("file")
-  "What sort of links to hide from the Org-roam graph."
+  "What sort of links to hide from the org-roam-v2 graph."
   :type '(repeat string)
-  :group 'org-roam)
+  :group 'org-roam-v2)
 
-(defcustom org-roam-graph-max-title-length 100
+(defcustom org-roam-v2-graph-max-title-length 100
   "Maximum length of titles in graph nodes."
   :type 'number
-  :group 'org-roam)
+  :group 'org-roam-v2)
 
-(defcustom org-roam-graph-shorten-titles 'truncate
+(defcustom org-roam-v2-graph-shorten-titles 'truncate
   "Determines how long titles appear in graph nodes.
 Recognized values are the symbols `truncate' and `wrap', in which
 cases the title will be truncated or wrapped, respectively, if it
-is longer than `org-roam-graph-max-title-length'.
+is longer than `org-roam-v2-graph-max-title-length'.
 
 All other values including nil will have no effect."
   :type '(choice
           (const :tag "truncate" truncate)
           (const :tag "wrap" wrap)
           (const :tag "no" nil))
-  :group 'org-roam)
+  :group 'org-roam-v2)
 
-(defun org-roam-graph--dot-option (option &optional wrap-key wrap-val)
+(defun org-roam-v2-graph--dot-option (option &optional wrap-key wrap-val)
   "Return dot string of form KEY=VAL for OPTION cons.
 If WRAP-KEY is non-nil it wraps the KEY.
 If WRAP-VAL is non-nil it wraps the VAL."
@@ -125,7 +125,7 @@ If WRAP-VAL is non-nil it wraps the VAL."
           "="
           wrap-val (cdr option) wrap-val))
 
-(defun org-roam-graph--connected-component (id distance)
+(defun org-roam-v2-graph--connected-component (id distance)
   "Return the edges for all nodes reachable from/connected to ID.
 DISTANCE is the maximum distance away from the root node."
   (let* ((query
@@ -156,31 +156,31 @@ WITH RECURSIVE
   nodes(source) as (SELECT DISTINCT source
    FROM connected_component GROUP BY source ORDER BY min(json_array_length(trace)))
 SELECT source, dest, type FROM links WHERE source IN nodes OR dest IN nodes;")))
-    (org-roam-db-query query id distance)))
+    (org-roam-v2-db-query query id distance)))
 
-(defun org-roam-graph--dot (&optional edges all-nodes)
+(defun org-roam-v2-graph--dot (&optional edges all-nodes)
   "Build the graphviz given the EDGES of the graph.
 If ALL-NODES, include also nodes without edges."
-  (let ((org-roam-directory-temp org-roam-directory)
-        (nodes-table (org-roam--nodes-table))
+  (let ((org-roam-v2-directory-temp org-roam-v2-directory)
+        (nodes-table (org-roam-v2--nodes-table))
         (seen-nodes (list))
-        (edges (or edges (org-roam-db-query [:select :distinct [source dest type] :from links]))))
+        (edges (or edges (org-roam-v2-db-query [:select :distinct [source dest type] :from links]))))
     (with-temp-buffer
-      (setq-local org-roam-directory org-roam-directory-temp)
-      (insert "digraph \"org-roam\" {\n")
-      (dolist (option org-roam-graph-extra-config)
-        (insert (org-roam-graph--dot-option option) ";\n"))
+      (setq-local org-roam-v2-directory org-roam-v2-directory-temp)
+      (insert "digraph \"org-roam-v2\" {\n")
+      (dolist (option org-roam-v2-graph-extra-config)
+        (insert (org-roam-v2-graph--dot-option option) ";\n"))
       (insert (format " edge [%s];\n"
                       (mapconcat (lambda (var)
-                                   (org-roam-graph--dot-option var nil "\""))
-                                 org-roam-graph-edge-extra-config
+                                   (org-roam-v2-graph--dot-option var nil "\""))
+                                 org-roam-v2-graph-edge-extra-config
                                  ",")))
       (pcase-dolist (`(,source ,dest ,type) edges)
-        (unless (member type org-roam-graph-link-hidden-types)
+        (unless (member type org-roam-v2-graph-link-hidden-types)
           (pcase-dolist (`(,node ,node-type) `((,source "id")
                                                (,dest ,type)))
             (unless (member node seen-nodes)
-              (insert (org-roam-graph--format-node
+              (insert (org-roam-v2-graph--format-node
                        (or (gethash node nodes-table) node) node-type))
               (push node seen-nodes)))
           (insert (format "  \"%s\" -> \"%s\";\n"
@@ -189,26 +189,26 @@ If ALL-NODES, include also nodes without edges."
       (when all-nodes
         (maphash (lambda (id node)
                    (unless (member id seen-nodes)
-                     (insert (org-roam-graph--format-node node "id"))))
+                     (insert (org-roam-v2-graph--format-node node "id"))))
                  nodes-table))
       (insert "}")
       (buffer-string))))
 
-(defun org-roam-graph--format-node (node type)
+(defun org-roam-v2-graph--format-node (node type)
   "Return a graphviz NODE with TYPE.
-Handles both Org-roam nodes, and string nodes (e.g. urls)."
+Handles both org-roam-v2 nodes, and string nodes (e.g. urls)."
   (let (node-id node-properties)
-    (if (org-roam-node-p node)
-        (let* ((title (org-roam-quote-string (org-roam-node-title node)))
-               (shortened-title (org-roam-quote-string
-                                 (pcase org-roam-graph-shorten-titles
-                                   (`truncate (org-roam-truncate org-roam-graph-max-title-length title))
-                                   (`wrap (s-word-wrap org-roam-graph-max-title-length title))
+    (if (org-roam-v2-node-p node)
+        (let* ((title (org-roam-v2-quote-string (org-roam-v2-node-title node)))
+               (shortened-title (org-roam-v2-quote-string
+                                 (pcase org-roam-v2-graph-shorten-titles
+                                   (`truncate (org-roam-v2-truncate org-roam-v2-graph-max-title-length title))
+                                   (`wrap (s-word-wrap org-roam-v2-graph-max-title-length title))
                                    (_ title)))))
-          (setq node-id (org-roam-node-id node)
+          (setq node-id (org-roam-v2-node-id node)
                 node-properties `(("label"   . ,shortened-title)
                                   ("URL"     . ,(concat "org-protocol://roam-node?node="
-                                                        (url-hexify-string (org-roam-node-id node))))
+                                                        (url-hexify-string (org-roam-v2-node-id node))))
                                   ("tooltip" . ,(xml-escape-string title)))))
       (setq node-id node
             node-properties (append `(("label" . ,(concat type ":" node)))
@@ -217,47 +217,47 @@ Handles both Org-roam nodes, and string nodes (e.g. urls)."
     (format "\"%s\" [%s];\n"
             node-id
             (mapconcat (lambda (n)
-                         (org-roam-graph--dot-option n nil "\""))
-                       (append (cdr (assoc type org-roam-graph-node-extra-config))
+                         (org-roam-v2-graph--dot-option n nil "\""))
+                       (append (cdr (assoc type org-roam-v2-graph-node-extra-config))
                                node-properties) ","))))
 
-(defun org-roam-graph--build (graph &optional callback)
+(defun org-roam-v2-graph--build (graph &optional callback)
   "Generate the GRAPH, and execute CALLBACK when process exits successfully.
 CALLBACK is passed the graph file as its sole argument."
-  (unless (stringp org-roam-graph-executable)
-    (user-error "`org-roam-graph-executable' is not a string"))
-  (unless (executable-find org-roam-graph-executable)
+  (unless (stringp org-roam-v2-graph-executable)
+    (user-error "`org-roam-v2-graph-executable' is not a string"))
+  (unless (executable-find org-roam-v2-graph-executable)
     (user-error (concat "Cannot find executable \"%s\" to generate the graph.  "
-                        "Please adjust `org-roam-graph-executable'")
-                org-roam-graph-executable))
+                        "Please adjust `org-roam-v2-graph-executable'")
+                org-roam-v2-graph-executable))
   (let* ((temp-dot   (make-temp-file "graph." nil ".dot" graph))
-         (temp-graph (make-temp-file "graph." nil (concat "." org-roam-graph-filetype))))
-    (org-roam-message "building graph")
+         (temp-graph (make-temp-file "graph." nil (concat "." org-roam-v2-graph-filetype))))
+    (org-roam-v2-message "building graph")
     (make-process
-     :name "*org-roam-graph--build-process*"
-     :buffer "*org-roam-graph--build-process*"
-     :command `(,org-roam-graph-executable ,temp-dot "-T" ,org-roam-graph-filetype "-o" ,temp-graph)
+     :name "*org-roam-v2-graph--build-process*"
+     :buffer "*org-roam-v2-graph--build-process*"
+     :command `(,org-roam-v2-graph-executable ,temp-dot "-T" ,org-roam-v2-graph-filetype "-o" ,temp-graph)
      :sentinel (when callback
                  (lambda (process _event)
                    (when (= 0 (process-exit-status process))
                      (funcall callback temp-graph)))))))
 
-(defun org-roam-graph--open (file)
-  "Open FILE using `org-roam-graph-viewer' with `view-file' as a fallback."
-  (pcase org-roam-graph-viewer
+(defun org-roam-v2-graph--open (file)
+  "Open FILE using `org-roam-v2-graph-viewer' with `view-file' as a fallback."
+  (pcase org-roam-v2-graph-viewer
     ((pred stringp)
-     (if (executable-find org-roam-graph-viewer)
+     (if (executable-find org-roam-v2-graph-viewer)
          (condition-case err
-             (call-process org-roam-graph-viewer nil 0 nil file)
-           (error (user-error "Failed to open org-roam graph: %s" err)))
-       (user-error "Executable not found: \"%s\"" org-roam-graph-viewer)))
-    ((pred functionp) (funcall org-roam-graph-viewer file))
+             (call-process org-roam-v2-graph-viewer nil 0 nil file)
+           (error (user-error "Failed to open org-roam-v2 graph: %s" err)))
+       (user-error "Executable not found: \"%s\"" org-roam-v2-graph-viewer)))
+    ((pred functionp) (funcall org-roam-v2-graph-viewer file))
     ('nil (view-file file))
-    (_ (signal 'wrong-type-argument `((functionp stringp null) ,org-roam-graph-viewer)))))
+    (_ (signal 'wrong-type-argument `((functionp stringp null) ,org-roam-v2-graph-viewer)))))
 
 ;;;; Commands
 ;;;###autoload
-(defun org-roam-graph (&optional arg node)
+(defun org-roam-v2-graph (&optional arg node)
   "Build and possibly display a graph for NODE.
 ARG may be any of the following values:
   - nil       show the graph.
@@ -266,16 +266,16 @@ ARG may be any of the following values:
   (interactive
    (list current-prefix-arg
          (and current-prefix-arg
-              (org-roam-node-at-point 'assert))))
+              (org-roam-v2-node-at-point 'assert))))
   (let ((graph (cl-typecase arg
-                 (null (org-roam-graph--dot nil 'all-nodes))
-                 (cons (org-roam-graph--dot (org-roam-graph--connected-component
-                                             (org-roam-node-id node) 0)))
-                 (integer (org-roam-graph--dot (org-roam-graph--connected-component
-                                                (org-roam-node-id node) (abs arg)))))))
-    (org-roam-graph--build graph #'org-roam-graph--open)))
+                 (null (org-roam-v2-graph--dot nil 'all-nodes))
+                 (cons (org-roam-v2-graph--dot (org-roam-v2-graph--connected-component
+                                             (org-roam-v2-node-id node) 0)))
+                 (integer (org-roam-v2-graph--dot (org-roam-v2-graph--connected-component
+                                                (org-roam-v2-node-id node) (abs arg)))))))
+    (org-roam-v2-graph--build graph #'org-roam-v2-graph--open)))
 
 
-(provide 'org-roam-graph)
+(provide 'org-roam-v2-graph)
 
-;;; org-roam-graph.el ends here
+;;; org-roam-v2-graph.el ends here

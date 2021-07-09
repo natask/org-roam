@@ -1,4 +1,4 @@
-;;; org-roam-macs.el --- Macros/utility functions -*- coding: utf-8; lexical-binding: t; -*-
+;;; org-roam-v2-macs.el --- Macros/utility functions -*- coding: utf-8; lexical-binding: t; -*-
 
 ;; Copyright © 2020 Jethro Kuan <jethrokuan95@gmail.com>
 
@@ -30,7 +30,7 @@
 ;; This library implements macros used throughout org-roam.
 ;;
 ;;; Code:
-(defmacro org-roam-plist-map! (fn plist)
+(defmacro org-roam-v2-plist-map! (fn plist)
   "Map FN over PLIST, modifying it in-place."
   (declare (indent 1))
   (let ((plist-var (make-symbol "plist"))
@@ -42,7 +42,7 @@
          (setq ,v (pop ,plist-var))
          (setq ,plist (plist-put ,plist ,k (funcall ,fn ,k ,v)))))))
 
-(defmacro org-roam-with-file (file keep-buf-p &rest body)
+(defmacro org-roam-v2-with-file (file keep-buf-p &rest body)
   "Execute BODY within FILE.
 If FILE is nil, execute BODY in the current buffer.
 Kills the buffer if KEEP-BUF-P is nil, and FILE is not yet visited."
@@ -70,21 +70,21 @@ Kills the buffer if KEEP-BUF-P is nil, and FILE is not yet visited."
          (kill-buffer (find-buffer-visiting ,file))))
      res))
 
-(defmacro org-roam-with-temp-buffer (file &rest body)
+(defmacro org-roam-v2-with-temp-buffer (file &rest body)
   "Execute BODY within a temp buffer.
-Like `with-temp-buffer', but propagates `org-roam-directory'.
+Like `with-temp-buffer', but propagates `org-roam-v2-directory'.
 If FILE, set `default-directory' to FILE's directory and insert its contents."
   (declare (indent 1) (debug t))
-  (let ((current-org-roam-directory (make-symbol "current-org-roam-directory")))
-    `(let ((,current-org-roam-directory org-roam-directory))
+  (let ((current-org-roam-v2-directory (make-symbol "current-org-roam-v2-directory")))
+    `(let ((,current-org-roam-v2-directory org-roam-v2-directory))
        (with-temp-buffer
-         (let ((org-roam-directory ,current-org-roam-directory))
+         (let ((org-roam-v2-directory ,current-org-roam-v2-directory))
            (delay-mode-hooks (org-mode))
            (when ,file
              (insert-file-contents ,file)
              (setq-local default-directory (file-name-directory ,file)))
            ,@body)))))
 
-(provide 'org-roam-macs)
+(provide 'org-roam-v2-macs)
 
-;;; org-roam-macs.el ends here
+;;; org-roam-v2-macs.el ends here

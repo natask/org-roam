@@ -1,4 +1,4 @@
-;;; org-roam-overlay.el --- Link overlay for Org-roam nodes -*- coding: utf-8; lexical-binding: t; -*-
+;;; org-roam-v2-overlay.el --- Link overlay for org-roam-v2 nodes -*- coding: utf-8; lexical-binding: t; -*-
 
 ;; Copyright © 2020-2021 Jethro Kuan <jethrokuan95@gmail.com>
 
@@ -35,22 +35,22 @@
 ;;; Code:
 ;;;; Dependencies
 
-(defface org-roam-overlay
+(defface org-roam-v2-overlay
   '((((class color) (background light))
      :background "grey90" :box (:line-width -1 :color "black"))
     (((class color) (background dark))
      :background "grey10" :box (:line-width -1 :color "white")))
-  "Face for the Org-roam overlay."
-  :group 'org-roam-faces)
+  "Face for the org-roam-v2 overlay."
+  :group 'org-roam-v2-faces)
 
-(defun org-roam-overlay--make (l r &rest props)
+(defun org-roam-v2-overlay--make (l r &rest props)
   "Make an overlay from L to R with PROPS."
   (let ((o (make-overlay l (or r l))))
-    (overlay-put o 'category 'org-roam)
+    (overlay-put o 'category 'org-roam-v2)
     (while props (overlay-put o (pop props) (pop props)))
     o))
 
-(defun org-roam-overlay-make-link-overlay (link)
+(defun org-roam-v2-overlay-make-link-overlay (link)
   "Create overlay for LINK."
   (save-excursion
     (save-match-data
@@ -60,38 +60,38 @@
              (desc-p (org-element-property :contents-begin link))
              node)
         (when (and (string-equal type "id")
-                   (setq node (org-roam-node-from-id id))
+                   (setq node (org-roam-v2-node-from-id id))
                    (not desc-p))
-          (org-roam-overlay--make
+          (org-roam-v2-overlay--make
            pos pos
            'after-string (format "%s "
-                                 (propertize (org-roam-node-title node)
-                                             'face 'org-roam-overlay))))))))
+                                 (propertize (org-roam-v2-node-title node)
+                                             'face 'org-roam-v2-overlay))))))))
 
-(defun org-roam-overlay-enable ()
-  "Enable Org-roam overlays."
-  (org-roam-db-map-links
-   (list #'org-roam-overlay-make-link-overlay)))
+(defun org-roam-v2-overlay-enable ()
+  "Enable org-roam-v2 overlays."
+  (org-roam-v2-db-map-links
+   (list #'org-roam-v2-overlay-make-link-overlay)))
 
-(defun org-roam-overlay-disable ()
-  "Disable Org-roam overlays."
-  (remove-overlays nil nil 'category 'org-roam))
+(defun org-roam-v2-overlay-disable ()
+  "Disable org-roam-v2 overlays."
+  (remove-overlays nil nil 'category 'org-roam-v2))
 
-(defun org-roam-overlay-redisplay ()
-  "Redisplay Org-roam overlays."
-  (org-roam-overlay-disable)
-  (org-roam-overlay-enable))
+(defun org-roam-v2-overlay-redisplay ()
+  "Redisplay org-roam-v2 overlays."
+  (org-roam-v2-overlay-disable)
+  (org-roam-v2-overlay-enable))
 
-(define-minor-mode org-roam-overlay-mode
-  "Overlays for Org-roam ID links.
-Org-roam overlay mode is a minor mode.  When enabled,
+(define-minor-mode org-roam-v2-overlay-mode
+  "Overlays for org-roam-v2 ID links.
+org-roam-v2 overlay mode is a minor mode.  When enabled,
 overlay displaying the node's title is displayed."
-  (if org-roam-overlay-mode
+  (if org-roam-v2-overlay-mode
       (progn
-        (org-roam-overlay-enable)
-        (add-hook #'after-save-hook #'org-roam-overlay-redisplay nil t))
-    (org-roam-overlay-disable)
-    (remove-hook #'after-save-hook #'org-roam-overlay-redisplay t)))
+        (org-roam-v2-overlay-enable)
+        (add-hook #'after-save-hook #'org-roam-v2-overlay-redisplay nil t))
+    (org-roam-v2-overlay-disable)
+    (remove-hook #'after-save-hook #'org-roam-v2-overlay-redisplay t)))
 
-(provide 'org-roam-overlay)
-;;; org-roam-overlay.el ends here
+(provide 'org-roam-v2-overlay)
+;;; org-roam-v2-overlay.el ends here

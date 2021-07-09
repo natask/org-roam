@@ -1,4 +1,4 @@
-;;; org-roam-compat.el --- Compatibility Code -*- coding: utf-8; lexical-binding: t; -*-
+;;; org-roam-v2-compat.el --- Compatibility Code -*- coding: utf-8; lexical-binding: t; -*-
 
 ;; Copyright © 2020 Jethro Kuan <jethrokuan95@gmail.com>
 
@@ -36,6 +36,6 @@
 ;;; Obsolete aliases (remove after next major release)
 ;;; Obsolete functions
 
-(provide 'org-roam-compat)
+(provide 'org-roam-v2-compat)
 
-;;; org-roam-compat.el ends here
+;;; org-roam-v2-compat.el ends here

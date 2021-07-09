@@ -1,4 +1,4 @@
-;;; org-roam-utils.el --- Utilities for Org-roam -*- coding: utf-8; lexical-binding: t; -*-
+;;; org-roam-v2-utils.el --- Utilities for Org-roam -*- coding: utf-8; lexical-binding: t; -*-
 
 ;; Copyright © 2020 Jethro Kuan <jethrokuan95@gmail.com>
 
@@ -28,7 +28,7 @@
 ;;; Commentary:
 ;;
 ;; This library implements utility functions used throughout
-;; Org-roam.
+;; org-roam-v2.
 ;;
 ;;
 ;;; Code:
@@ -36,10 +36,10 @@
 (require 'dash)
 
 (eval-when-compile
-  (require 'org-roam-macs)
+  (require 'org-roam-v2-macs)
   (require 'org-macs))
 
-(defvar org-roam-verbose)
+(defvar org-roam-v2-verbose)
 
 ;; This is necessary to ensure all dependents on this module see
 ;; `org-mode-hook' and `org-inhibit-startup' as dynamic variables,
@@ -47,7 +47,7 @@
 (require 'org)
 
 ;;;; String Utilities
-(defun org-roam-truncate (len s &optional ellipsis)
+(defun org-roam-v2-truncate (len s &optional ellipsis)
   "If S is longer than LEN, cut it down and add ELLIPSIS to the end.
 
 The resulting string, including ellipsis, will be LEN characters
@@ -61,19 +61,19 @@ When not specified, ELLIPSIS defaults to ‘...’."
       (format "%s%s" (substring s 0 (- len (length ellipsis))) ellipsis)
     s))
 
-(defun org-roam-replace (old new s)
+(defun org-roam-v2-replace (old new s)
   "Replace OLD with NEW in S."
   (declare (pure t) (side-effect-free t))
   (replace-regexp-in-string (regexp-quote old) new s t t))
 
-(defun org-roam-quote-string (s)
+(defun org-roam-v2-quote-string (s)
   "Quotes string S."
   (->> s
-    (org-roam-replace "\\" "\\\\")
-    (org-roam-replace "\"" "\\\"")))
+    (org-roam-v2-replace "\\" "\\\\")
+    (org-roam-v2-replace "\"" "\\\"")))
 
 ;;;; Utility Functions
-(defun org-roam--list-interleave (lst separator)
+(defun org-roam-v2--list-interleave (lst separator)
   "Interleaves elements in LST with SEPARATOR."
   (when lst
     (let ((new-lst (list (pop lst))))
@@ -81,7 +81,7 @@ When not specified, ELLIPSIS defaults to ‘...’."
         (nconc new-lst (list separator it)))
       new-lst)))
 
-(defun org-roam-up-heading-or-point-min ()
+(defun org-roam-v2-up-heading-or-point-min ()
   "Fixed version of Org's `org-up-heading-or-point-min'."
   (ignore-errors (org-back-to-heading t))
   (let ((p (point)))
@@ -92,14 +92,14 @@ When not specified, ELLIPSIS defaults to ‘...’."
             (goto-char (point-min))))
       (unless (bobp) (goto-char (point-min))))))
 
-(defun org-roam-message (format-string &rest args)
-  "Pass FORMAT-STRING and ARGS to `message' when `org-roam-verbose' is t."
-  (when org-roam-verbose
-    (apply #'message `(,(concat "(org-roam) " format-string) ,@args))))
+(defun org-roam-v2-message (format-string &rest args)
+  "Pass FORMAT-STRING and ARGS to `message' when `org-roam-v2-verbose' is t."
+  (when org-roam-v2-verbose
+    (apply #'message `(,(concat "(org-roam-v2) " format-string) ,@args))))
 
 (defvar org-ref-buffer-hacked)
 
-(defun org-roam-fontify-like-in-org-mode (s)
+(defun org-roam-v2-fontify-like-in-org-mode (s)
   "Fontify string S like in Org mode.
 Like `org-fontify-like-in-org-mode', but supports `org-ref'."
   ;; NOTE: pretend that the temporary buffer created by `org-fontify-like-in-org-mode' to
@@ -110,7 +110,7 @@ Like `org-fontify-like-in-org-mode', but supports `org-ref'."
   ;; otherwise.  This doesn't seem to be the case and calling this function just before
   ;; `org-font-lock-ensure' (alias of `font-lock-ensure') actually instead of fixing the alleged
   ;; warnings messes the things so badly that `font-lock-ensure' crashes with error and doesn't let
-  ;; org-roam to proceed further. I don't know what's happening there exactly but disabling this hackery
+  ;; org-roam-v2 to proceed further. I don't know what's happening there exactly but disabling this hackery
   ;; fixes the crashing.  Fortunately, org-ref provides the `org-ref-buffer-hacked' switch, which we use
   ;; here to make it believe that the buffer was hacked.
   ;;
@@ -125,7 +125,7 @@ Like `org-fontify-like-in-org-mode', but supports `org-ref'."
       (org-font-lock-ensure)
       (buffer-string))))
 
-(defun org-roam-set-header-line-format (string)
+(defun org-roam-v2-set-header-line-format (string)
   "Set the header-line using STRING.
 If the `face' property of any part of STRING is already set, then
 that takes precedence. Also pad the left side of STRING so that
@@ -135,7 +135,7 @@ it aligns with the text area."
                       string)))
 
 ;;; Keywords
-(defun org-roam--get-keyword (name &optional bound)
+(defun org-roam-v2--get-keyword (name &optional bound)
   "Return keyword property NAME in current buffer.
 If BOUND, scan up to BOUND bytes of the buffer."
   (save-excursion
@@ -144,7 +144,7 @@ If BOUND, scan up to BOUND bytes of the buffer."
       (when (re-search-forward re bound t)
         (buffer-substring-no-properties (match-beginning 1) (match-end 1))))))
 
-(defun org-roam-get-keyword (name &optional file bound)
+(defun org-roam-v2-get-keyword (name &optional file bound)
   "Return keyword property NAME from an org FILE.
 FILE defaults to current file.
 Only scans up to BOUND bytes of the document."
@@ -153,42 +153,42 @@ Only scans up to BOUND bytes of the document."
   (if file
       (with-temp-buffer
         (insert-file-contents-literally file nil 0 bound)
-        (org-roam--get-keyword name))
-    (org-roam--get-keyword name bound)))
+        (org-roam-v2--get-keyword name))
+    (org-roam-v2--get-keyword name bound)))
 
 ;;; Shielding regions
-(defface org-roam-shielded
+(defface org-roam-v2-shielded
   '((t :inherit (warning)))
   "Face for regions that are shielded (marked as read-only).
-This face is used on the region target by org-roam-insertion
-during an `org-roam-capture'."
-  :group 'org-roam-faces)
+This face is used on the region target by org-roam-v2-insertion
+during an `org-roam-v2-capture'."
+  :group 'org-roam-v2-faces)
 
-(defun org-roam-shield-region (beg end)
+(defun org-roam-v2-shield-region (beg end)
   "Shield region against modifications.
 BEG and END are markers for the beginning and end regions.
 REGION must be a cons-cell containing the marker to the region
 beginning and maximum values."
   (add-text-properties beg end
-                       '(font-lock-face org-roam-shielded
+                       '(font-lock-face org-roam-v2-shielded
                                         read-only t)
                        (marker-buffer beg)))
 
-(defun org-roam-unshield-region (beg end)
+(defun org-roam-v2-unshield-region (beg end)
   "Unshield the shielded REGION.
 BEG and END are markers for the beginning and end regions."
   (let ((inhibit-read-only t))
     (remove-text-properties beg end
-                            '(font-lock-face org-roam-shielded
+                            '(font-lock-face org-roam-v2-shielded
                                              read-only t)
                             (marker-buffer beg))))
 
 ;;; Formatting
-(defun org-roam-format (template replacer)
+(defun org-roam-v2-format (template replacer)
   "Format TEMPLATE with the function REPLACER.
 REPLACER takes an argument of the format variable and optionally
 an extra argument which is the EXTRA value from the call to
-`org-roam-format'.
+`org-roam-v2-format'.
 Adapted from `s-format'."
   (let ((saved-match-data (match-data)))
     (unwind-protect
@@ -201,22 +201,22 @@ Adapted from `s-format'."
                  (let ((v (progn
                             (set-match-data saved-match-data)
                             (funcall replacer var))))
-                   (if v (format "%s" v) (signal 'org-roam-format-resolve md)))
+                   (if v (format "%s" v) (signal 'org-roam-v2-format-resolve md)))
                (set-match-data replacer-match-data)))) template
          ;; Need literal to make sure it works
          t t)
       (set-match-data saved-match-data))))
 
-(defvar org-roam--cached-display-format nil)
+(defvar org-roam-v2--cached-display-format nil)
 
-(defun org-roam--process-display-format (format)
+(defun org-roam-v2--process-display-format (format)
   "Pre-calculate minimal widths needed by the FORMAT string."
-  (or org-roam--cached-display-format
-      (setq org-roam--cached-display-format
+  (or org-roam-v2--cached-display-format
+      (setq org-roam-v2--cached-display-format
             (let* ((fields-width 0)
                    (string-width
                     (string-width
-                     (org-roam-format
+                     (org-roam-v2-format
                       format
                       (lambda (field)
                         (setq fields-width
@@ -226,15 +226,15 @@ Adapted from `s-format'."
                                       "")))))))))
               (cons format (+ fields-width string-width))))))
 
-;;; for org-roam-demote-entire-buffer in org-roam-refile.el
-(defun org-roam--file-keyword-get (keyword)
+;;; for org-roam-v2-demote-entire-buffer in org-roam-v2-refile.el
+(defun org-roam-v2--file-keyword-get (keyword)
   "Pull a KEYWORD setting from the top of the file.
 
 Keyword must be specified in ALL CAPS."
   (cadr (assoc keyword
                (org-collect-keywords (list keyword)))))
 
-(defun org-roam--file-keyword-kill (keyword)
+(defun org-roam-v2--file-keyword-kill (keyword)
   "Erase KEYWORD setting line from the top of the file."
   (let ((case-fold-search t))
     (org-with-point-at 1
@@ -243,7 +243,7 @@ Keyword must be specified in ALL CAPS."
         (delete-region (point) (line-end-position))
         (delete-char 1)))))
 
-(defun org-roam--kill-empty-buffer ()
+(defun org-roam-v2--kill-empty-buffer ()
   "If the source buffer has been emptied, kill it.
 
 If the buffer is associated with a file, delete the file.
@@ -260,13 +260,13 @@ If the buffer is associated with an in-process capture operation, abort the oper
 
 ;;; Diagnostics
 ;;;###autoload
-(defun org-roam-version (&optional message)
-  "Return `org-roam' version.
+(defun org-roam-v2-version (&optional message)
+  "Return `org-roam-v2' version.
 Interactively, or when MESSAGE is non-nil, show in the echo area."
   (interactive)
   (let* ((version
           (with-temp-buffer
-            (insert-file-contents-literally (locate-library "org-roam.el"))
+            (insert-file-contents-literally (locate-library "org-roam-v2.el"))
             (goto-char (point-min))
             (save-match-data
               (if (re-search-forward "\\(?:;; Version: \\([^z-a]*?$\\)\\)" nil nil)
@@ -277,10 +277,10 @@ Interactively, or when MESSAGE is non-nil, show in the echo area."
       version)))
 
 ;;;###autoload
-(defun org-roam-diagnostics ()
-  "Collect and print info for `org-roam' issues."
+(defun org-roam-v2-diagnostics ()
+  "Collect and print info for `org-roam-v2' issues."
   (interactive)
-  (with-current-buffer (switch-to-buffer-other-window (get-buffer-create "*org-roam diagnostics*"))
+  (with-current-buffer (switch-to-buffer-other-window (get-buffer-create "*org-roam-v2 diagnostics*"))
     (erase-buffer)
     (insert (propertize "Copy info below this line into issue:\n" 'face '(:weight bold)))
     (insert (format "- Emacs: %s\n" (emacs-version)))
@@ -290,7 +290,7 @@ Interactively, or when MESSAGE is non-nil, show in the echo area."
                                          '("Doom" "Spacemacs" "N/A" "I don't know"))
                       (quit "N/A"))))
     (insert (format "- Org: %s\n" (org-version nil 'full)))
-    (insert (format "- Org-roam: %s" (org-roam-version)))))
+    (insert (format "- org-roam-v2: %s" (org-roam-v2-version)))))
 
-(provide 'org-roam-utils)
-;;; org-roam-utils.el ends here
+(provide 'org-roam-v2-utils)
+;;; org-roam-v2-utils.el ends here
