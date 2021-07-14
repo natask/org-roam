@@ -208,6 +208,9 @@ extraction methods:
     Extract vanilla `org-mode' tags, including #+FILETAGS and
     inherited tags.
 
+  `filetags'
+    Extract #+FILETAGS `org-mode' tags.
+
   `all-directories'
     Extract sub-directories relative to `org-roam-directory'.
     That is, if a file is located at relative path foo/bar/file.org,
@@ -224,6 +227,7 @@ extraction methods:
     the file will have tag \"foo\"."
   :type '(set (const :tag "#+roam_tags" prop)
               (const :tag "buffer org tags" vanilla)
+              (const :tag "#+filetags" filetags)
               (const :tag "sub-directories" all-directories)
               (const :tag "parent directory" last-directory)
               (const :tag "first sub-directory" first-directory)))
@@ -769,6 +773,19 @@ tag."
 This includes all tags used in the buffer."
   (org-set-regexps-and-options 'tags-only)
   (-flatten (org-get-buffer-tags)))
+
+(defun org-roam--extract-tags-filetags (_file)
+  "Extract #+FILETAGS `org-mode' tags.
+Treats _ as space."
+  (org-set-regexps-and-options 'tags-only)
+  (let* ((prop (org-roam--extract-global-props (list "FILETAGS")))
+         (aliases (or (-as-> prop it
+                             (mapcar #'cdr it)
+                             (-reduce #'concat it))
+                      "")))
+    (--> aliases
+         (split-string it ":" 't)
+         (mapcar (lambda (str) (string-replace "_" " " str)) it))))
 
 (defun org-roam--extract-tags (&optional file)
   "Extract tags from the current buffer.
